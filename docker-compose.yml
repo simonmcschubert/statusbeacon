@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: status-page-db
+    environment:
+      POSTGRES_USER: status_user
+      POSTGRES_PASSWORD: status_pass
+      POSTGRES_DB: status_page
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - status-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U status_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: status-page-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - status-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    container_name: status-page-app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://status_user:status_pass@postgres:5432/status_page
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./config:/app/config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - status-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  status-network:
+    driver: bridge

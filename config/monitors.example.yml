@@ -1,0 +1,19 @@
+monitors:
+  - name: Example HTTP Service
+    group: "Core Services"
+    url: https://example.com
+    type: http
+    interval: 60
+    public: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 500"
+  
+  - name: Example TCP Service
+    group: "Internal Infrastructure"
+    url: tcp://localhost:5432
+    type: tcp
+    interval: 120
+    public: false
+    conditions:
+      - "[CONNECTED] == true"
