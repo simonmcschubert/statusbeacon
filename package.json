@@ -9,10 +9,7 @@
     "start": "node dist/server/index.js",
     "db:migrate": "tsx server/db/migrate.ts",
     "lint": "eslint . --ext .ts,.tsx",
-    "type-check": "tsc --noEmit",
-    "setup": "bash scripts/setup-local.sh",
-    "test:local": "bash scripts/test-local.sh",
-    "quick-start": "bash scripts/start.sh"
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
     "status-page",

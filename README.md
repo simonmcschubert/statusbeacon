@@ -47,23 +47,6 @@ Public status page will be available at `status.simonschubert.com`
 
 ## Getting Started
 
-### Quick Start (Recommended)
-
-```bash
-# One command to set up and run everything
-npm run quick-start
-```
-
-This will:
-1. Install all dependencies
-2. Set up configuration files
-3. Start PostgreSQL and Redis in Docker
-4. Run database migrations
-5. Start backend and frontend servers
-6. Run health checks
-
-### Manual Setup
-
 ### Prerequisites
 
 - Node.js >= 20.4
