@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { ConfigLoader } from '../config/loader.js';
 import { MonitorRunner } from '../monitors/runner.js';
+import { IncidentDetector } from '../services/incident-detector.js';
 import type { Monitor } from '../config/schemas/monitors.schema.js';
 
 const QUEUE_NAME = 'monitor-checks';
@@ -32,14 +33,8 @@ export const monitorWorker = new Worker<MonitorJobData>(
     try {
       const result = await MonitorRunner.runCheck(monitor, monitorId);
       
-      // TODO: Save result to database
-      // await saveCheckResult(result);
-      
-      // TODO: Update incident status if needed
-      // await updateIncidentStatus(result);
-      
-      // TODO: Send notifications if status changed
-      // await sendNotifications(result);
+      // Process check result (save to DB, update incidents, send notifications)
+      await IncidentDetector.processCheckResult(result);
       
       return result;
     } catch (error) {

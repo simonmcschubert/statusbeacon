@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import { ConfigLoader } from './config/loader.js';
 import { MonitorRunner } from './monitors/runner.js';
 import { scheduleMonitors, reloadMonitors, shutdownQueue } from './queue/monitor-queue.js';
+import { IncidentRepository } from './repositories/incident-repository.js';
+import { CheckRepository } from './repositories/check-repository.js';
+import { StatusHistoryRepository } from './repositories/status-history-repository.js';
 
 dotenv.config();
 
@@ -73,8 +76,18 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
-app.get('/api/incidents', (req, res) => {
-  res.json({ message: 'Incidents API - Coming soon' });
+app.get('/api/incidents', async (req, res) => {
+  try {
+    const activeOnly = req.query.active === 'true';
+    const incidents = activeOnly
+      ? await IncidentRepository.getActiveIncidents()
+      : await IncidentRepository.getAllIncidents();
+    
+    res.json({ incidents });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch incidents';
+    res.status(500).json({ error: message });
+  }
 });
 
 // Test endpoint to run checks manually
@@ -82,22 +95,55 @@ app.post('/api/test-check', async (req, res) => {
   if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
-
-  try {
-    const results = await MonitorRunner.runChecks(monitorsConfig.monitors);
-    res.json({ results });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: message });
-  }
-});
-
 // Reload monitors endpoint
 app.post('/api/reload-monitors', async (req, res) => {
   try {
     ConfigLoader.reloadConfigs();
     appConfig = ConfigLoader.loadAppConfig();
     monitorsConfig = ConfigLoader.loadMonitorsConfig();
+    await reloadMonitors();
+    res.json({ 
+      message: 'Monitors reloaded successfully',
+      count: monitorsConfig.monitors.length
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to reload monitors';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Get monitor statistics
+app.get('/api/monitors/:id/stats', async (req, res) => {
+  try {
+    const monitorId = parseInt(req.params.id);
+    const days = parseInt(req.query.days as string) || 30;
+    
+    const uptime = await CheckRepository.calculateUptime(monitorId, days);
+    const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, days);
+    const history = await StatusHistoryRepository.getHistory(monitorId, days);
+    
+    res.json({
+      monitorId,
+      uptime,
+      avgResponseTime,
+      history,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch stats';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Aggregate daily status (manual trigger - should normally run via cron)
+app.post('/api/admin/aggregate-status', async (req, res) => {
+  try {
+    await StatusHistoryRepository.aggregateAllYesterday();
+    res.json({ message: 'Status history aggregated successfully' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to aggregate status';
+    res.status(500).json({ error: message });
+  }
+}); monitorsConfig = ConfigLoader.loadMonitorsConfig();
     await reloadMonitors();
     res.json({ 
       message: 'Monitors reloaded successfully',
