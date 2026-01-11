@@ -1,4 +1,4 @@
-import { pool } from '../db/index.js';
+import pool from '../db/index.js';
 import type { MonitorCheckResult } from '../monitors/runner.js';
 
 export class CheckRepository {

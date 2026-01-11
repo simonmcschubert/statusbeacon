@@ -95,6 +95,19 @@ app.post('/api/test-check', async (req, res) => {
   if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
+  
+  try {
+    const results = await MonitorRunner.runChecks(monitorsConfig.monitors);
+    res.json({
+      timestamp: new Date().toISOString(),
+      results,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to run test checks';
+    res.status(500).json({ error: message });
+  }
+});
+
 // Reload monitors endpoint
 app.post('/api/reload-monitors', async (req, res) => {
   try {

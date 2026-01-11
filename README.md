@@ -7,7 +7,7 @@ status: building
 
 app_id: status-page
 server: personal01
-server_path: 
+server_path: /var/www/status-page
 license: none
 domain: status.simonschubert.com
 ---

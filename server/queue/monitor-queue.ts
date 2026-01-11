@@ -12,7 +12,7 @@ const connection = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '6379'),
   maxRetriesPerRequest: null, // Required for BullMQ
-});
+}) as any; // Type assertion for BullMQ compatibility
 
 // Create queue for monitor checks
 export const monitorQueue = new Queue(QUEUE_NAME, { connection });
@@ -65,7 +65,8 @@ monitorWorker.on('error', (err) => {
 
 // Schedule all monitors from config
 export async function scheduleMonitors() {
-  const monitors = await ConfigLoader.loadMonitorsConfig();
+  const config = ConfigLoader.loadMonitorsConfig();
+  const monitors = config.monitors;
   
   console.log(`[Scheduler] Scheduling ${monitors.length} monitors`);
   

@@ -1,5 +1,6 @@
 import axios from 'axios';
-import type { ConditionContext } from './condition-evaluator.js';
+import type { ConditionContext } from '../condition-evaluator.js';
+
 
 export interface CheckResult {
   success: boolean;
