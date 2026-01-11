@@ -46,13 +46,42 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-app.get('/api/monitors', (req, res) => {
+app.get('/api/monitors', async (req, res) => {
   if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
-  res.json({
-    monitors: monitorsConfig.monitors.filter(m => m.public),
-  });
+  
+  try {
+    const publicMonitors = monitorsConfig.monitors.filter(m => m.public);
+    
+    // Enrich each monitor with stats
+    const enrichedMonitors = await Promise.all(
+      publicMonitors.map(async (monitor) => {
+        const monitorId = monitor.id || 0;
+        const uptime = await CheckRepository.calculateUptime(monitorId, 90);
+        const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
+        const latestCheck = await CheckRepository.getLatestCheck(monitorId);
+        const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+        
+        return {
+          ...monitor,
+          id: monitorId,
+          uptime,
+          avgResponseTime,
+          currentStatus: latestCheck?.success ? 'up' : (latestCheck ? 'down' : 'unknown'),
+          uptimeHistory: history.map(h => ({
+            date: h.date,
+            uptime: h.uptimePercentage,
+          })),
+        };
+      })
+    );
+    
+    res.json({ monitors: enrichedMonitors });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch monitors';
+    res.status(500).json({ error: message });
+  }
 });
 
 app.get('/api/monitors/:id', async (req, res) => {

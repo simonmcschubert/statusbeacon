@@ -10,7 +10,17 @@ app:
 ui:
   theme:
     default_mode: "dark"
-    primary_color: "#3b82f6"
+  colors:
+    primary_accent: "#f04a00"
+    secondary_accent: "#E4B62C"
+    background_light: "#F5F5F5"
+    background_dark: "#333333"
+    text_on_light: "#000000"
+    text_on_light_secondary: "#333333"
+    text_on_dark: "#F5F5F5"
+    text_on_dark_secondary: "#e0e0e0"
+    gray_light: "#e0e0e0"
+    gray_dark: "#ACACAC"
     success_color: "#10b981"
     warning_color: "#f59e0b"
     danger_color: "#ef4444"

@@ -1,5 +1,6 @@
 monitors:
-  - name: simonschubert.com
+  - id: 1
+    name: simonschubert.com
     group: "Core Services"
     url: https://simonschubert.com/
     type: http
