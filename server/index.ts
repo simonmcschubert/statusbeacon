@@ -143,7 +143,12 @@ app.post('/api/admin/aggregate-status', async (req, res) => {
     const message = error instanceof Error ? error.message : 'Failed to aggregate status';
     res.status(500).json({ error: message });
   }
-}); monitorsConfig = ConfigLoader.loadMonitorsConfig();
+});
+
+// Reload monitors from config
+app.post('/api/admin/reload-monitors', async (req, res) => {
+  try {
+    monitorsConfig = ConfigLoader.loadMonitorsConfig();
     await reloadMonitors();
     res.json({ 
       message: 'Monitors reloaded successfully',
