@@ -1,6 +1,7 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import StatusPage from './pages/StatusPage'
+import { MonitorDetailPage } from './pages/MonitorDetailPage'
 import './styles/App.css'
 
 function App() {
@@ -26,13 +27,16 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="container">
-          <h1>Status Page</h1>
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <h1>Status Page</h1>
+          </Link>
         </div>
       </header>
 
       <main className="app-main">
         <Routes>
           <Route path="/" element={<StatusPage />} />
+          <Route path="/monitor/:id" element={<MonitorDetailPage />} />
         </Routes>
       </main>
 

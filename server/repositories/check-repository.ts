@@ -103,4 +103,22 @@ export class CheckRepository {
     const result = await pool.query(query, [monitorId]);
     return result.rows[0].avg_response_time || 0;
   }
+
+  /**
+   * Get the latest check for a monitor
+   */
+  static async getLatestCheck(
+    monitorId: number
+  ): Promise<{ success: boolean; response_time_ms: number; checked_at: Date } | null> {
+    const query = `
+      SELECT success, response_time_ms, checked_at
+      FROM checks
+      WHERE monitor_id = $1
+      ORDER BY checked_at DESC
+      LIMIT 1
+    `;
+    
+    const result = await pool.query(query, [monitorId]);
+    return result.rows[0] || null;
+  }
 }

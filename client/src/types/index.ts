@@ -5,9 +5,10 @@ export interface Monitor {
   type: 'http' | 'tcp' | 'websocket' | 'dns' | 'ping'
   interval: number
   public: boolean
-  currentStatus?: 'up' | 'down' | 'degraded'
+  currentStatus?: 'up' | 'down' | 'degraded' | 'unknown'
   uptime?: number
   avgResponseTime?: number
+  uptimeHistory?: { date: string; uptime: number }[]
 }
 
 export interface Incident {

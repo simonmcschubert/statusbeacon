@@ -55,6 +55,41 @@ app.get('/api/monitors', (req, res) => {
   });
 });
 
+app.get('/api/monitors/:id', async (req, res) => {
+  if (!monitorsConfig) {
+    return res.status(500).json({ error: 'Monitors config not loaded' });
+  }
+  
+  const monitorId = parseInt(req.params.id);
+  const monitor = monitorsConfig.monitors.find(m => m.id === monitorId && m.public);
+  
+  if (!monitor) {
+    return res.status(404).json({ error: 'Monitor not found' });
+  }
+  
+  try {
+    // Get additional stats
+    const uptime = await CheckRepository.calculateUptime(monitorId, 90);
+    const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
+    const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+    const latestCheck = await CheckRepository.getLatestCheck(monitorId);
+    
+    res.json({
+      ...monitor,
+      uptime,
+      avgResponseTime,
+      currentStatus: latestCheck?.success ? 'up' : (latestCheck ? 'down' : 'unknown'),
+      uptimeHistory: history.map(h => ({
+        date: h.date,
+        uptime: h.uptimePercentage,
+      })),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch monitor';
+    res.status(500).json({ error: message });
+  }
+});
+
 app.get('/api/status', async (req, res) => {
   if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
