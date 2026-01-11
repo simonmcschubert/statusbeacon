@@ -5,6 +5,7 @@ const ConditionSchema = z.string();
 
 // Monitor schema
 export const MonitorSchema = z.object({
+  id: z.number(),
   name: z.string(),
   group: z.string().optional(),
   url: z.string(),
