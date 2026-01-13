@@ -1,6 +1,6 @@
 import pool from '../db/index.js';
 import type { Monitor } from '../config/schemas/monitors.schema.js';
-import { MaintenanceRepository } from './maintenance-repository.js';
+import { MaintenanceRepository, type RecurringMaintenanceConfig } from './maintenance-repository.js';
 
 export class MonitorRepository {
   /**
@@ -41,14 +41,29 @@ export class MonitorRepository {
           monitor.public ?? true,
         ]);
 
-        // Sync maintenance windows for this monitor
+        // Process maintenance windows
         if (monitor.maintenance && monitor.maintenance.length > 0) {
-          const validWindows = monitor.maintenance.filter(
-            (m): m is { start: string; end: string; timezone?: string; description?: string } => 
-              typeof m.start === 'string' && typeof m.end === 'string'
-          );
-          if (validWindows.length > 0) {
-            await MaintenanceRepository.syncFromConfig(monitor.id, validWindows);
+          // Separate one-time and recurring maintenance windows
+          const oneTimeWindows: { start: string; end: string; timezone?: string; description?: string }[] = [];
+          const recurringWindows: RecurringMaintenanceConfig[] = [];
+          
+          for (const m of monitor.maintenance) {
+            if ('type' in m && m.type === 'daily') {
+              recurringWindows.push(m as RecurringMaintenanceConfig);
+            } else if ('start' in m && 'end' in m) {
+              oneTimeWindows.push(m as { start: string; end: string; timezone?: string; description?: string });
+            }
+          }
+          
+          // Sync one-time windows to database
+          if (oneTimeWindows.length > 0) {
+            await MaintenanceRepository.syncFromConfig(monitor.id, oneTimeWindows);
+          }
+          
+          // Cache recurring windows in memory
+          if (recurringWindows.length > 0) {
+            MaintenanceRepository.setRecurringMaintenance(monitor.id, recurringWindows);
+            console.log(`[MonitorSync] Cached ${recurringWindows.length} recurring maintenance windows for monitor ${monitor.name}`);
           }
         }
       }

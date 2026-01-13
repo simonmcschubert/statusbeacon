@@ -3,6 +3,27 @@ import { z } from 'zod';
 // Monitor condition schema
 const ConditionSchema = z.string();
 
+// One-time maintenance window
+const OneTimeMaintenanceSchema = z.object({
+  type: z.literal('one-time').optional(), // default if not specified
+  start: z.string(),  // "2026-01-15 02:00"
+  end: z.string(),    // "2026-01-15 04:00"
+  timezone: z.string().default('UTC'),
+  description: z.string().optional(),
+});
+
+// Recurring daily maintenance window
+const RecurringMaintenanceSchema = z.object({
+  type: z.literal('daily'),
+  start_time: z.string(),  // "09:00" (24h format)
+  end_time: z.string(),    // "09:15"
+  timezone: z.string().default('UTC'),
+  description: z.string().optional(),
+});
+
+// Combined maintenance schema
+const MaintenanceSchema = z.union([OneTimeMaintenanceSchema, RecurringMaintenanceSchema]);
+
 // Monitor schema
 export const MonitorSchema = z.object({
   id: z.number(),
@@ -13,12 +34,7 @@ export const MonitorSchema = z.object({
   interval: z.number().min(10),
   public: z.boolean().default(true),
   conditions: z.array(ConditionSchema),
-  maintenance: z.array(z.object({
-    start: z.string(),
-    end: z.string(),
-    timezone: z.string().default('UTC'),
-    description: z.string().optional(),
-  })).optional(),
+  maintenance: z.array(MaintenanceSchema).optional(),
   dns: z.object({
     query_name: z.string(),
     query_type: z.string(),
@@ -26,6 +42,7 @@ export const MonitorSchema = z.object({
 });
 
 export type Monitor = z.infer<typeof MonitorSchema>;
+export type MaintenanceWindow = z.infer<typeof MaintenanceSchema>;
 
 // Monitors file schema
 export const MonitorsConfigSchema = z.object({

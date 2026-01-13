@@ -97,8 +97,8 @@ app.get('/api/monitors', async (req, res) => {
           })),
           maintenance: maintenanceStatus.inMaintenance ? {
             active: true,
-            description: maintenanceStatus.window?.description,
-            endsAt: maintenanceStatus.window?.endTime,
+            description: maintenanceStatus.description || maintenanceStatus.window?.description,
+            endsAt: maintenanceStatus.endsAt || maintenanceStatus.window?.endTime,
           } : undefined,
         };
       })
@@ -167,8 +167,8 @@ app.get('/api/monitors/:id', async (req, res) => {
       })),
       maintenance: maintenanceStatus.inMaintenance ? {
         active: true,
-        description: maintenanceStatus.window?.description,
-        endsAt: maintenanceStatus.window?.endTime,
+        description: maintenanceStatus.description || maintenanceStatus.window?.description,
+        endsAt: maintenanceStatus.endsAt || maintenanceStatus.window?.endTime,
       } : { active: false },
       upcomingMaintenance: upcomingMaintenance.map(m => ({
         startTime: m.startTime,

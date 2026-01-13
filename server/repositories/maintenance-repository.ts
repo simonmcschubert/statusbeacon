@@ -1,4 +1,5 @@
 import pool from '../db/index.js';
+import type { MaintenanceWindow as ConfigMaintenanceWindow } from '../config/schemas/monitors.schema.js';
 
 export interface MaintenanceWindow {
   id: number;
@@ -10,7 +11,75 @@ export interface MaintenanceWindow {
   createdAt: Date;
 }
 
+export interface RecurringMaintenanceConfig {
+  type: 'daily';
+  start_time: string;  // "09:00"
+  end_time: string;    // "09:15"
+  timezone?: string;
+  description?: string;
+}
+
+/**
+ * Check if current time is within a recurring daily maintenance window
+ */
+function isInRecurringWindow(config: RecurringMaintenanceConfig): { inMaintenance: boolean; description?: string; endsAt?: Date } {
+  const now = new Date();
+  const timezone = config.timezone || 'UTC';
+  
+  // Get current time in the specified timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  
+  const currentTimeStr = formatter.format(now);
+  const [currentHour, currentMinute] = currentTimeStr.split(':').map(Number);
+  const currentMinutes = currentHour * 60 + currentMinute;
+  
+  // Parse start and end times
+  const [startHour, startMinute] = config.start_time.split(':').map(Number);
+  const [endHour, endMinute] = config.end_time.split(':').map(Number);
+  const startMinutes = startHour * 60 + startMinute;
+  const endMinutes = endHour * 60 + endMinute;
+  
+  // Check if current time is within the window
+  let inMaintenance = false;
+  if (startMinutes <= endMinutes) {
+    // Normal case: start < end (e.g., 09:00 to 09:15)
+    inMaintenance = currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  } else {
+    // Overnight case: start > end (e.g., 23:00 to 01:00)
+    inMaintenance = currentMinutes >= startMinutes || currentMinutes < endMinutes;
+  }
+  
+  if (inMaintenance) {
+    // Calculate when maintenance ends (today)
+    const endsAt = new Date(now);
+    endsAt.setHours(endHour, endMinute, 0, 0);
+    if (endMinutes < startMinutes && currentMinutes >= startMinutes) {
+      // Overnight: ends tomorrow
+      endsAt.setDate(endsAt.getDate() + 1);
+    }
+    
+    return { inMaintenance: true, description: config.description, endsAt };
+  }
+  
+  return { inMaintenance: false };
+}
+
+// Store recurring maintenance configs per monitor (loaded from config)
+const recurringMaintenanceCache: Map<number, RecurringMaintenanceConfig[]> = new Map();
+
 export class MaintenanceRepository {
+  /**
+   * Set recurring maintenance config for a monitor (called during config sync)
+   */
+  static setRecurringMaintenance(monitorId: number, configs: RecurringMaintenanceConfig[]): void {
+    recurringMaintenanceCache.set(monitorId, configs);
+  }
+
   /**
    * Create or update a maintenance window
    */
@@ -68,7 +137,21 @@ export class MaintenanceRepository {
   /**
    * Check if a monitor is currently in a maintenance window
    */
-  static async isInMaintenance(monitorId: number): Promise<{ inMaintenance: boolean; window?: MaintenanceWindow }> {
+  static async isInMaintenance(monitorId: number): Promise<{ inMaintenance: boolean; window?: MaintenanceWindow; description?: string; endsAt?: Date }> {
+    // First check recurring daily maintenance from config
+    const recurringConfigs = recurringMaintenanceCache.get(monitorId) || [];
+    for (const config of recurringConfigs) {
+      const result = isInRecurringWindow(config);
+      if (result.inMaintenance) {
+        return { 
+          inMaintenance: true, 
+          description: result.description,
+          endsAt: result.endsAt,
+        };
+      }
+    }
+
+    // Then check one-time windows from database
     const query = `
       SELECT 
         id,
