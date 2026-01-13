@@ -1,5 +1,6 @@
 import { CheckRepository } from '../repositories/check-repository.js';
 import { IncidentRepository } from '../repositories/incident-repository.js';
+import { MaintenanceRepository } from '../repositories/maintenance-repository.js';
 import type { MonitorCheckResult } from '../monitors/runner.js';
 
 // Number of consecutive failures required before creating an incident
@@ -17,6 +18,13 @@ export class IncidentDetector {
 
     // Save the check result first
     await CheckRepository.saveCheck(result);
+
+    // Check if monitor is in maintenance window
+    const maintenanceStatus = await MaintenanceRepository.isInMaintenance(result.monitorId);
+    if (maintenanceStatus.inMaintenance) {
+      console.log(`[IncidentDetector] Monitor ${result.monitorName} is in maintenance, skipping incident detection`);
+      return;
+    }
 
     // Get active incident for this monitor
     const activeIncident = await IncidentRepository.getActiveIncident(result.monitorId);

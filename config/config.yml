@@ -9,7 +9,7 @@ app:
 # UI/UX settings
 ui:
   theme:
-    default_mode: "dark"
+    default_mode: "system"
   colors:
     primary_accent: "#f04a00"
     secondary_accent: "#E4B62C"

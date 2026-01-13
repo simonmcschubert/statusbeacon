@@ -10,6 +10,7 @@ import { IncidentRepository } from './repositories/incident-repository.js';
 import { CheckRepository } from './repositories/check-repository.js';
 import { StatusHistoryRepository } from './repositories/status-history-repository.js';
 import { MonitorRepository } from './repositories/monitor-repository.js';
+import { MaintenanceRepository } from './repositories/maintenance-repository.js';
 import { scheduleDailyAggregation, scheduleHourlyAggregation, backfillHistoryOnStartup } from './jobs/daily-aggregation.js';
 
 dotenv.config();
@@ -72,17 +73,33 @@ app.get('/api/monitors', async (req, res) => {
         const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
         const latestCheck = await CheckRepository.getLatestCheck(monitorId);
         const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+        const maintenanceStatus = await MaintenanceRepository.isInMaintenance(monitorId);
+        
+        // Determine current status - maintenance takes precedence
+        let currentStatus: string = 'unknown';
+        if (maintenanceStatus.inMaintenance) {
+          currentStatus = 'maintenance';
+        } else if (latestCheck?.success) {
+          currentStatus = 'up';
+        } else if (latestCheck) {
+          currentStatus = 'down';
+        }
         
         return {
           ...monitor,
           id: monitorId,
           uptime,
           avgResponseTime,
-          currentStatus: latestCheck?.success ? 'up' : (latestCheck ? 'down' : 'unknown'),
+          currentStatus,
           uptimeHistory: history.map(h => ({
             date: h.date,
             uptime: h.uptimePercentage,
           })),
+          maintenance: maintenanceStatus.inMaintenance ? {
+            active: true,
+            description: maintenanceStatus.window?.description,
+            endsAt: maintenanceStatus.window?.endTime,
+          } : undefined,
         };
       })
     );
@@ -115,12 +132,24 @@ app.get('/api/monitors/:id', async (req, res) => {
     const responseTimeHistory = await CheckRepository.getResponseTimeHistory(monitorId, 30, 'day');
     const recentChecks = await CheckRepository.getRecentResponseTimes(monitorId, 100);
     const incidents = await IncidentRepository.getIncidentsForMonitor(monitorId, 20);
+    const maintenanceStatus = await MaintenanceRepository.isInMaintenance(monitorId);
+    const upcomingMaintenance = await MaintenanceRepository.getUpcomingMaintenance(monitorId, 5);
+    
+    // Determine current status - maintenance takes precedence
+    let currentStatus: string = 'unknown';
+    if (maintenanceStatus.inMaintenance) {
+      currentStatus = 'maintenance';
+    } else if (latestCheck?.success) {
+      currentStatus = 'up';
+    } else if (latestCheck) {
+      currentStatus = 'down';
+    }
     
     res.json({
       ...monitor,
       uptime,
       avgResponseTime,
-      currentStatus: latestCheck?.success ? 'up' : (latestCheck ? 'down' : 'unknown'),
+      currentStatus,
       uptimeHistory: history.map(h => ({
         date: h.date,
         uptime: h.uptimePercentage,
@@ -135,6 +164,16 @@ app.get('/api/monitors/:id', async (req, res) => {
         description: i.description,
         startedAt: i.startedAt,
         resolvedAt: i.resolvedAt,
+      })),
+      maintenance: maintenanceStatus.inMaintenance ? {
+        active: true,
+        description: maintenanceStatus.window?.description,
+        endsAt: maintenanceStatus.window?.endTime,
+      } : { active: false },
+      upcomingMaintenance: upcomingMaintenance.map(m => ({
+        startTime: m.startTime,
+        endTime: m.endTime,
+        description: m.description,
       })),
     });
   } catch (error) {

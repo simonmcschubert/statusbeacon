@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Activity, CheckCircle, XCircle, AlertTriangle, Bell, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Activity, CheckCircle, XCircle, AlertTriangle, Bell, AlertCircle, Wrench } from 'lucide-react';
 import type { Monitor } from '../types';
 import { UptimeBar } from '../components/UptimeBar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -70,19 +70,22 @@ export function MonitorDetailPage() {
     );
   }
 
-  const getStatusVariant = (): 'success' | 'destructive' | 'warning' => {
+  const getStatusVariant = (): 'success' | 'destructive' | 'warning' | 'secondary' => {
+    if (monitor.currentStatus === 'maintenance') return 'secondary';
     if (monitor.currentStatus === 'down') return 'destructive';
     if (monitor.currentStatus === 'degraded') return 'warning';
     return 'success';
   };
 
   const getStatusIcon = () => {
+    if (monitor.currentStatus === 'maintenance') return <Wrench className="h-5 w-5" />;
     if (monitor.currentStatus === 'down') return <XCircle className="h-5 w-5" />;
     if (monitor.currentStatus === 'degraded') return <AlertTriangle className="h-5 w-5" />;
     return <CheckCircle className="h-5 w-5" />;
   };
 
   const getStatusText = () => {
+    if (monitor.currentStatus === 'maintenance') return 'Maintenance';
     if (monitor.currentStatus === 'down') return 'Down';
     if (monitor.currentStatus === 'degraded') return 'Degraded';
     return 'Operational';
@@ -126,6 +129,28 @@ export function MonitorDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Status
         </Link>
+
+        {/* Maintenance Banner */}
+        {monitor.maintenance?.active && (
+          <Card className="border-blue-500/30 bg-blue-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Wrench className="h-5 w-5 text-blue-400" />
+                <div>
+                  <p className="font-medium text-foreground">Scheduled Maintenance in Progress</p>
+                  {monitor.maintenance.description && (
+                    <p className="text-sm text-muted-foreground mt-1">{monitor.maintenance.description}</p>
+                  )}
+                  {monitor.maintenance.endsAt && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Expected to end: {new Date(monitor.maintenance.endsAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         {/* Header Card */}
         <Card>
@@ -137,7 +162,8 @@ export function MonitorDetailPage() {
                     "p-2 rounded-full",
                     monitor.currentStatus === 'up' && "bg-success/10 text-success",
                     monitor.currentStatus === 'degraded' && "bg-warning/10 text-warning",
-                    monitor.currentStatus === 'down' && "bg-destructive/10 text-destructive"
+                    monitor.currentStatus === 'down' && "bg-destructive/10 text-destructive",
+                    monitor.currentStatus === 'maintenance' && "bg-blue-500/10 text-blue-400"
                   )}>
                     {getStatusIcon()}
                   </div>

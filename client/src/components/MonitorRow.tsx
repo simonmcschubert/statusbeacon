@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CheckCircle, AlertTriangle, XCircle, ChevronRight } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronRight, Wrench } from 'lucide-react';
 import type { Monitor } from '../types';
 import { UptimeBar } from './UptimeBar';
 import { Badge } from './ui/badge';
@@ -13,6 +13,14 @@ export function MonitorRow({ monitor }: MonitorRowProps) {
   const uptimePercent = monitor.uptime ?? 100;
   
   const getStatusConfig = () => {
+    if (monitor.currentStatus === 'maintenance') {
+      return {
+        icon: Wrench,
+        label: 'Maintenance',
+        variant: 'secondary' as const,
+        iconClass: 'text-blue-400',
+      };
+    }
     if (monitor.currentStatus === 'down') {
       return {
         icon: XCircle,

@@ -1,5 +1,6 @@
 import pool from '../db/index.js';
 import type { Monitor } from '../config/schemas/monitors.schema.js';
+import { MaintenanceRepository } from './maintenance-repository.js';
 
 export class MonitorRepository {
   /**
@@ -39,6 +40,17 @@ export class MonitorRepository {
           monitor.url,
           monitor.public ?? true,
         ]);
+
+        // Sync maintenance windows for this monitor
+        if (monitor.maintenance && monitor.maintenance.length > 0) {
+          const validWindows = monitor.maintenance.filter(
+            (m): m is { start: string; end: string; timezone?: string; description?: string } => 
+              typeof m.start === 'string' && typeof m.end === 'string'
+          );
+          if (validWindows.length > 0) {
+            await MaintenanceRepository.syncFromConfig(monitor.id, validWindows);
+          }
+        }
       }
       
       // Delete monitors that are no longer in config

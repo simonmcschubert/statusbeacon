@@ -1,3 +1,15 @@
+export interface MaintenanceWindow {
+  startTime: string
+  endTime: string
+  description?: string
+}
+
+export interface ActiveMaintenance {
+  active: boolean
+  description?: string
+  endsAt?: string
+}
+
 export interface Monitor {
   id: number
   name: string
@@ -5,13 +17,15 @@ export interface Monitor {
   type: 'http' | 'tcp' | 'websocket' | 'dns' | 'ping'
   interval: number
   public: boolean
-  currentStatus?: 'up' | 'down' | 'degraded' | 'unknown'
+  currentStatus?: 'up' | 'down' | 'degraded' | 'unknown' | 'maintenance'
   uptime?: number
   avgResponseTime?: number | string
   uptimeHistory?: { date: string; uptime: number }[]
   responseTimeHistory?: { timestamp: string; avgResponseTime: number; minResponseTime: number; maxResponseTime: number }[]
   recentChecks?: { timestamp: string; responseTime: number; success: boolean }[]
   incidents?: Incident[]
+  maintenance?: ActiveMaintenance
+  upcomingMaintenance?: MaintenanceWindow[]
 }
 
 export interface Incident {
