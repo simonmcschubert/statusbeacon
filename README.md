@@ -3,7 +3,7 @@ name: status-page
 description: 
 github_repo: https://github.com/simonmcschubert/status-page
 
-status: building
+status: active
 
 app_id: status-page
 server: personal01
@@ -16,17 +16,18 @@ domain: status.simonschubert.com
 
 A lightweight, self-hosted status page for monitoring services — built from scratch as a learning & portfolio project.
 
-Public status page will be available at `status.simonschubert.com`
+**Live Demo**: [status.simonschubert.com](https://status.simonschubert.com)
 
 ## Features
 
 - **Multi-protocol monitoring** - HTTP/HTTPS, TCP, WebSocket, DNS, ICMP (ping)
 - **Flexible condition system** - DSL for health checks with JSONPath support
-- **Beautiful UI** - Dark mode, responsive design, real-time charts
+- **Beautiful UI** - Dark mode, Tailwind CSS, shadcn/ui components
+- **90-day uptime history** - Visual uptime bars with daily aggregation
+- **Response time charts** - Real historical response time data
 - **Incident tracking** - Automatic incident creation/resolution with history
-- **Maintenance windows** - Scheduled downtime with alert suppression
 - **Badges API** - SVG badges for embedding in READMEs
-- **Webhook notifications** - Customizable templates via n8n
+- **Auto-sync monitors** - Monitors defined in YAML, auto-synced to database
 
 ## Tech Stack
 
@@ -40,11 +41,16 @@ Public status page will be available at `status.simonschubert.com`
 - **Condition Engine**: JSONPath Plus + custom DSL parser
 
 ### Frontend
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
+- **Framework**: React 19 with TypeScript
+- **Build Tool**: Vite 7
+- **Styling**: Tailwind CSS with shadcn/ui components
 - **Routing**: React Router
-- **Styling**: CSS Variables (dark mode support)
-- **Charts**: Recharts (planned)
+- **Icons**: Lucide React
+
+### Infrastructure
+- **Deployment**: Ansible playbooks
+- **Web Server**: Nginx with SSL (Let's Encrypt)
+- **Process Manager**: systemd
 
 ## Getting Started
 
@@ -65,6 +71,7 @@ cd status-page
 2. Install dependencies:
 ```bash
 npm install
+cd client && npm install
 ```
 
 3. Set up environment variables:
@@ -105,26 +112,38 @@ docker-compose up -d
 
 ## Configuration
 
-See [plan.md](./plan.md) for detailed configuration options.
-
 ### `config/config.yml` - Application Settings
 
 Configure branding, notifications, and UI preferences.
 
 ### `config/monitors.yml` - Service Definitions
 
-Define services to monitor with conditions and maintenance windows.
+```yaml
+monitors:
+  - id: 1
+    name: My Website
+    group: "Core Services"
+    url: https://example.com/
+    type: http
+    interval: 60
+    public: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 500"
+```
 
 ## API Endpoints
 
-- `GET /health` - Health check
-- `GET /api/config` - App configuration
-- `GET /api/monitors` - Public monitors
-- `GET /api/status` - Current status (runs all checks)
-- `GET /api/incidents` - Incident history
-- `GET /api/monitors/:id/stats` - Monitor statistics
-- `POST /api/test-check` - Manual check trigger
-- `POST /api/reload-monitors` - Reload configuration
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/api/config` | GET | App configuration |
+| `/api/monitors` | GET | All public monitors with stats |
+| `/api/monitors/:id` | GET | Single monitor with response time history |
+| `/api/status` | GET | Current status (runs all checks) |
+| `/api/incidents` | GET | Incident history |
+| `/api/test-check` | POST | Manual check trigger |
+| `/api/reload-monitors` | POST | Reload configuration |
 
 ## Project Structure
 
@@ -133,37 +152,61 @@ status-page/
 ├── server/               # Backend application
 │   ├── config/          # Configuration loaders and Zod schemas
 │   ├── db/              # Database connection and migrations
+│   ├── jobs/            # Scheduled jobs (daily aggregation)
 │   ├── monitors/        # Monitor checkers and condition evaluator
-│   │   └── checkers/   # Protocol-specific checkers (HTTP, TCP, WebSocket, DNS, Ping)
+│   │   └── checkers/   # Protocol-specific checkers
 │   ├── queue/          # BullMQ job queue setup
-│   ├── repositories/   # Data access layer (checks, incidents, history)
-│   └── services/       # Business logic (incident detection)
+│   ├── repositories/   # Data access layer
+│   └── index.ts        # Express server
 ├── client/              # Frontend React application
 │   └── src/
-│       ├── components/ # MonitorCard, IncidentTimeline
-│       ├── pages/      # StatusPage
+│       ├── components/ # UI components
+│       │   └── ui/    # shadcn/ui components
+│       ├── pages/      # StatusPage, MonitorDetailPage
 │       ├── services/   # API client
-│       └── styles/     # CSS with theme variables
+│       └── lib/        # Utilities
 ├── config/              # Configuration files
-│   ├── config.yml      # App settings
-│   └── monitors.yml    # Monitor definitions
-└── docker-compose.yml   # Docker setup
+├── scripts/             # Deployment scripts
+└── ansible/             # Ansible playbooks
 ```
+
+## Deployment
+
+Deploy to production using the included script:
+
+```bash
+./scripts/deploy.sh
+```
+
+This runs Ansible playbooks that:
+- Clone/update the repository
+- Install dependencies
+- Build frontend and backend
+- Run database migrations
+- Configure Nginx with SSL
+- Restart the systemd service
 
 ## Development Status
 
-🚧 **In Progress** - Active development
+✅ **Production Ready** - Actively monitoring services
 
 ### Completed
 - ✅ All protocol checkers (HTTP, TCP, WebSocket, DNS, Ping)
 - ✅ BullMQ job queue with automated scheduling
 - ✅ Database persistence and incident detection
-- ✅ React frontend with dark mode
-- ✅ Monitor cards and incident timeline
+- ✅ React frontend with Tailwind CSS + shadcn/ui
+- ✅ 90-day uptime visualization
+- ✅ Response time charts with real data
+- ✅ Daily historical data aggregation
+- ✅ Monitor detail pages
+- ✅ Ansible deployment
 
-### In Progress
-- 🟡 Charts for uptime and response time
+### Planned
 - 🟡 Server-Sent Events for real-time updates
-- 🟡 Badges API
+- 🟡 Email/webhook notifications
+- 🟡 Scheduled maintenance windows
+- 🟡 Public badges API
 
-See [plan.md](./plan.md) for the complete technical design and roadmap.
+## License
+
+Private project - not licensed for redistribution.
