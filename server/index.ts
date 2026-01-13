@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { ConfigLoader } from './config/loader.js';
 import { MonitorRunner } from './monitors/runner.js';
@@ -16,6 +18,12 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDistPath));
 
 // Load configurations
 let appConfig;
@@ -235,6 +243,11 @@ app.post('/api/admin/reload-monitors', async (req, res) => {
     const message = error instanceof Error ? error.message : 'Failed to reload monitors';
     res.status(500).json({ error: message });
   }
+});
+
+// Catch-all route for SPA - must be after API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 // Start server
