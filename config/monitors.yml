@@ -19,3 +19,13 @@ monitors:
     conditions:
       - "[STATUS] == 200"
       - "[RESPONSE_TIME] < 500"
+  - id: 3
+    name: n8n.simonschubert.com
+    group: "Core Services"
+    url: https://n8n.simonschubert.com/
+    type: http
+    interval: 600
+    public: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 500"
