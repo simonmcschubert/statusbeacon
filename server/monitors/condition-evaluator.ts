@@ -6,10 +6,26 @@ export interface ConditionContext {
   CONNECTED?: boolean;
   BODY?: any;
   HEADERS?: Record<string, string>;
-  CERTIFICATE_EXPIRATION?: string;
+  CERTIFICATE_EXPIRATION?: string;      // Formatted string like "30d", "5d", "48h"
+  CERTIFICATE_EXPIRY_DAYS?: number;     // Numeric days until expiry
   DNS_RCODE?: string;
   ERROR?: string;
   TIMESTAMP?: string;
+}
+
+/**
+ * Parse a duration string like "7d", "30d", "48h" into days
+ */
+function parseDuration(duration: string): number | null {
+  const match = duration.match(/^(\d+)(d|h)$/);
+  if (!match) return null;
+  
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+  
+  if (unit === 'd') return value;
+  if (unit === 'h') return value / 24;
+  return null;
 }
 
 export class ConditionEvaluator {
@@ -20,9 +36,29 @@ export class ConditionEvaluator {
    * - "[RESPONSE_TIME] < 500"
    * - "[BODY].status == 'healthy'"
    * - "[CONNECTED] == true"
+   * - "[CERTIFICATE_EXPIRATION] > 7d"
    */
   static evaluate(condition: string, context: ConditionContext): boolean {
     try {
+      // Special handling for CERTIFICATE_EXPIRATION duration comparison
+      const certMatch = condition.match(/\[CERTIFICATE_EXPIRATION\]\s*(>|<|>=|<=|==|!=)\s*(\d+[dh])/);
+      if (certMatch && context.CERTIFICATE_EXPIRY_DAYS !== undefined) {
+        const operator = certMatch[1];
+        const threshold = parseDuration(certMatch[2]);
+        if (threshold !== null) {
+          const actual = context.CERTIFICATE_EXPIRY_DAYS;
+          switch (operator) {
+            case '>': return actual > threshold;
+            case '<': return actual < threshold;
+            case '>=': return actual >= threshold;
+            case '<=': return actual <= threshold;
+            case '==': return actual === threshold;
+            case '!=': return actual !== threshold;
+          }
+        }
+        return false;
+      }
+
       // Replace placeholders with actual values
       let expression = condition;
 
