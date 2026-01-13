@@ -148,4 +148,28 @@ export class IncidentRepository {
     const result = await pool.query(query);
     return result.rows;
   }
+
+  /**
+   * Get incidents for a specific monitor
+   */
+  static async getIncidentsForMonitor(monitorId: number, limit: number = 20): Promise<Incident[]> {
+    const query = `
+      SELECT 
+        id,
+        monitor_id as "monitorId",
+        status,
+        severity,
+        title,
+        description,
+        started_at as "startedAt",
+        resolved_at as "resolvedAt"
+      FROM incidents
+      WHERE monitor_id = $1
+      ORDER BY started_at DESC
+      LIMIT $2
+    `;
+    
+    const result = await pool.query(query, [monitorId, limit]);
+    return result.rows;
+  }
 }

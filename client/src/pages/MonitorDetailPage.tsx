@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Activity, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Clock, Activity, CheckCircle, XCircle, AlertTriangle, Bell, AlertCircle } from 'lucide-react';
 import type { Monitor } from '../types';
 import { UptimeBar } from '../components/UptimeBar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -267,6 +267,104 @@ export function MonitorDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Status Updates / Incidents */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              Status Updates
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {monitor.incidents && monitor.incidents.length > 0 ? (
+              <div className="space-y-4">
+                {monitor.incidents.map((incident) => {
+                  const startDate = new Date(incident.startedAt);
+                  const resolvedDate = incident.resolvedAt ? new Date(incident.resolvedAt) : null;
+                  const isResolved = incident.status === 'resolved';
+                  
+                  const getSeverityVariant = (): 'success' | 'warning' | 'destructive' => {
+                    if (isResolved) return 'success';
+                    if (incident.severity === 'critical') return 'destructive';
+                    if (incident.severity === 'major') return 'destructive';
+                    return 'warning';
+                  };
+                  
+                  const getStatusIcon = () => {
+                    if (isResolved) return <CheckCircle className="h-4 w-4 text-success" />;
+                    if (incident.severity === 'critical') return <XCircle className="h-4 w-4 text-destructive" />;
+                    return <AlertCircle className="h-4 w-4 text-warning" />;
+                  };
+                  
+                  const formatDuration = () => {
+                    const end = resolvedDate || new Date();
+                    const durationMs = end.getTime() - startDate.getTime();
+                    const minutes = Math.floor(durationMs / 60000);
+                    const hours = Math.floor(minutes / 60);
+                    const days = Math.floor(hours / 24);
+                    
+                    if (days > 0) return `${days}d ${hours % 24}h`;
+                    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+                    return `${minutes}m`;
+                  };
+
+                  return (
+                    <div 
+                      key={incident.id}
+                      className={cn(
+                        "p-4 rounded-lg border",
+                        isResolved 
+                          ? "border-border bg-card" 
+                          : "border-destructive/30 bg-destructive/5"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5">
+                            {getStatusIcon()}
+                          </div>
+                          <div className="space-y-1">
+                            <div className="font-medium text-foreground">
+                              {incident.title}
+                            </div>
+                            {incident.description && (
+                              <p className="text-sm text-muted-foreground">
+                                {incident.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span>
+                                {startDate.toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  year: startDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                              <span>•</span>
+                              <span>Duration: {formatDuration()}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant={getSeverityVariant()} className="text-xs shrink-0">
+                          {isResolved ? 'Resolved' : incident.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <CheckCircle className="h-10 w-10 mb-3 text-success/50" />
+                <p className="text-sm">No incidents recorded</p>
+                <p className="text-xs mt-1">This monitor has been running smoothly</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

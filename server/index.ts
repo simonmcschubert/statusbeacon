@@ -114,6 +114,7 @@ app.get('/api/monitors/:id', async (req, res) => {
     const latestCheck = await CheckRepository.getLatestCheck(monitorId);
     const responseTimeHistory = await CheckRepository.getResponseTimeHistory(monitorId, 30, 'day');
     const recentChecks = await CheckRepository.getRecentResponseTimes(monitorId, 100);
+    const incidents = await IncidentRepository.getIncidentsForMonitor(monitorId, 20);
     
     res.json({
       ...monitor,
@@ -126,6 +127,15 @@ app.get('/api/monitors/:id', async (req, res) => {
       })),
       responseTimeHistory,
       recentChecks,
+      incidents: incidents.map(i => ({
+        id: i.id,
+        status: i.status,
+        severity: i.severity,
+        title: i.title,
+        description: i.description,
+        startedAt: i.startedAt,
+        resolvedAt: i.resolvedAt,
+      })),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch monitor';

@@ -11,6 +11,7 @@ export interface Monitor {
   uptimeHistory?: { date: string; uptime: number }[]
   responseTimeHistory?: { timestamp: string; avgResponseTime: number; minResponseTime: number; maxResponseTime: number }[]
   recentChecks?: { timestamp: string; responseTime: number; success: boolean }[]
+  incidents?: Incident[]
 }
 
 export interface Incident {
