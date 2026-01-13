@@ -29,3 +29,19 @@ monitors:
     conditions:
       - "[STATUS] == 200"
       - "[RESPONSE_TIME] < 500"
+  - id: 3
+    name: recipes.simonschubert.com
+    group: "Core Services"
+    url: https://recipes.simonschubert.com/
+    type: http
+    interval: 600
+    public: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 500"
+    maintenance:
+      - start: "2026-01-11 02:00"
+        end: "2026-01-11 04:00"
+        timezone: "Europe/Berlin"
+        description: "maintenance"
+
