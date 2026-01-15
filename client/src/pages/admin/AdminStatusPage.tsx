@@ -152,10 +152,10 @@ export function AdminStatusPage() {
           <CardContent className="pt-6 text-center">
             <div className={cn(
               "text-2xl font-bold",
-              overallUptime >= 99.9 ? "text-green-400" :
-              overallUptime >= 99 ? "text-yellow-400" : "text-red-400"
+              (overallUptime ?? 100) >= 99.9 ? "text-green-400" :
+              (overallUptime ?? 100) >= 99 ? "text-yellow-400" : "text-red-400"
             )}>
-              {overallUptime.toFixed(2)}%
+              {(overallUptime ?? 100).toFixed(2)}%
             </div>
             <div className="text-sm text-gray-400 mt-1">Overall Uptime</div>
           </CardContent>
@@ -293,11 +293,11 @@ function AdminMonitorRow({ monitor }: { monitor: Monitor }) {
           <div className="text-right hidden sm:block">
             <div className={cn(
               "text-lg font-semibold tabular-nums",
-              uptimePercent >= 99.9 && "text-green-400",
-              uptimePercent >= 99 && uptimePercent < 99.9 && "text-yellow-400",
-              uptimePercent < 99 && "text-red-400"
+              (uptimePercent ?? 100) >= 99.9 && "text-green-400",
+              (uptimePercent ?? 100) >= 99 && (uptimePercent ?? 100) < 99.9 && "text-yellow-400",
+              (uptimePercent ?? 100) < 99 && "text-red-400"
             )}>
-              {uptimePercent.toFixed(2)}%
+              {(uptimePercent ?? 100).toFixed(2)}%
             </div>
             <div className="text-xs text-gray-400">uptime</div>
           </div>
