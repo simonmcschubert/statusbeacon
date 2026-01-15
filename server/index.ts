@@ -342,7 +342,10 @@ app.get('/api/status', async (req, res) => {
   }
 
   try {
-    const results = await MonitorRunner.runChecks(monitorsConfig.monitors);
+    // Only run checks for public monitors
+    const publicMonitorIds = await MonitorRepository.getPublicMonitorIds();
+    const publicMonitors = monitorsConfig.monitors.filter(m => publicMonitorIds.has(m.id || 0));
+    const results = await MonitorRunner.runChecks(publicMonitors);
     res.json({
       timestamp: new Date().toISOString(),
       monitors: results.map(r => ({
