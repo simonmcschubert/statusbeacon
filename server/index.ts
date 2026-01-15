@@ -216,10 +216,13 @@ app.get('/api/monitors', async (req, res) => {
     const enrichedMonitors = await Promise.all(
       publicMonitors.map(async (monitor) => {
         const monitorId = monitor.id || 0;
-        const uptime = await CheckRepository.calculateUptime(monitorId, 90);
+        // Use status_history for uptime (more accurate for historical data)
+        const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+        const uptime = history.length > 0 
+          ? await StatusHistoryRepository.calculateAverageUptime(monitorId, 90)
+          : await CheckRepository.calculateUptime(monitorId, 90);
         const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
         const latestCheck = await CheckRepository.getLatestCheck(monitorId);
-        const history = await StatusHistoryRepository.getHistory(monitorId, 90);
         const maintenanceStatus = await MaintenanceRepository.isInMaintenance(monitorId);
         
         // Determine current status - maintenance takes precedence
@@ -466,10 +469,13 @@ app.get('/api/admin/status', requireAuth, async (req, res) => {
     const enrichedMonitors = await Promise.all(
       allMonitors.map(async (monitor) => {
         const monitorId = monitor.id || 0;
-        const uptime = await CheckRepository.calculateUptime(monitorId, 90);
         const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
         const latestCheck = await CheckRepository.getLatestCheck(monitorId);
         const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+        // Use status_history for accurate uptime (checks table data was corrupted)
+        const uptime = history.length > 0 
+          ? await StatusHistoryRepository.calculateAverageUptime(monitorId, 90)
+          : await CheckRepository.calculateUptime(monitorId, 90);
         const maintenanceStatus = await MaintenanceRepository.isInMaintenance(monitorId);
         
         // Determine current status - maintenance takes precedence

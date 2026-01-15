@@ -78,6 +78,29 @@ export class StatusHistoryRepository {
   }
 
   /**
+   * Calculate average uptime from status_history
+   * More accurate than recalculating from checks for historical data
+   */
+  static async calculateAverageUptime(
+    monitorId: number,
+    days: number = 90
+  ): Promise<number> {
+    const query = `
+      SELECT AVG(uptime_percentage) as avg_uptime
+      FROM status_history
+      WHERE 
+        monitor_id = $1
+        AND date > CURRENT_DATE - INTERVAL '${days} days'
+    `;
+    
+    const result = await pool.query(query, [monitorId]);
+    const avgUptime = result.rows[0]?.avg_uptime;
+    
+    // If no history data, fall back to 100%
+    return avgUptime !== null ? parseFloat(avgUptime) : 100;
+  }
+
+  /**
    * Aggregate all monitors for yesterday
    * Run this as a daily cron job
    */
