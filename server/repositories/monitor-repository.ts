@@ -41,6 +41,7 @@ export class MonitorRepository {
       const configIds = new Set<number>(monitors.map(m => m.id));
       
       // Upsert all monitors from config
+      // Note: We don't overwrite 'public' on conflict - database is the source of truth for visibility
       for (const monitor of monitors) {
         await client.query(`
           INSERT INTO monitors (id, name, "group", type, url, public)
@@ -50,7 +51,6 @@ export class MonitorRepository {
             "group" = EXCLUDED."group",
             type = EXCLUDED.type,
             url = EXCLUDED.url,
-            public = EXCLUDED.public,
             updated_at = NOW()
         `, [
           monitor.id,
@@ -127,6 +127,29 @@ export class MonitorRepository {
       [id]
     );
     return result.rows[0] || null;
+  }
+
+  /**
+   * Get public status for a monitor from database
+   * Database is the source of truth for visibility settings
+   */
+  static async isPublic(id: number): Promise<boolean> {
+    const result = await pool.query(
+      'SELECT public FROM monitors WHERE id = $1',
+      [id]
+    );
+    // Default to true if not found
+    return result.rows[0]?.public ?? true;
+  }
+
+  /**
+   * Get all public monitor IDs from database
+   */
+  static async getPublicMonitorIds(): Promise<Set<number>> {
+    const result = await pool.query(
+      'SELECT id FROM monitors WHERE public = true'
+    );
+    return new Set(result.rows.map(r => r.id));
   }
 
   /**

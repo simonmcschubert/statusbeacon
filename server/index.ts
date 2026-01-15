@@ -210,7 +210,9 @@ app.get('/api/monitors', async (req, res) => {
   }
   
   try {
-    const publicMonitors = monitorsConfig.monitors.filter(m => m.public);
+    // Get public monitor IDs from database (source of truth for visibility)
+    const publicMonitorIds = await MonitorRepository.getPublicMonitorIds();
+    const publicMonitors = monitorsConfig.monitors.filter(m => publicMonitorIds.has(m.id || 0));
     
     // Enrich each monitor with stats
     const enrichedMonitors = await Promise.all(
@@ -267,9 +269,12 @@ app.get('/api/monitors/:id', async (req, res) => {
   }
   
   const monitorId = parseInt(req.params.id);
-  const monitor = monitorsConfig.monitors.find(m => m.id === monitorId && m.public);
+  const monitor = monitorsConfig.monitors.find(m => m.id === monitorId);
   
-  if (!monitor) {
+  // Check database for public status (source of truth for visibility)
+  const isPublic = await MonitorRepository.isPublic(monitorId);
+  
+  if (!monitor || !isPublic) {
     return res.status(404).json({ error: 'Monitor not found' });
   }
   
@@ -465,6 +470,9 @@ app.get('/api/admin/status', requireAuth, async (req, res) => {
     // Get ALL monitors (including private ones)
     const allMonitors = monitorsConfig.monitors;
     
+    // Get public status from database for all monitors
+    const publicMonitorIds = await MonitorRepository.getPublicMonitorIds();
+    
     // Enrich each monitor with stats (same as public endpoint)
     const enrichedMonitors = await Promise.all(
       allMonitors.map(async (monitor) => {
@@ -491,6 +499,8 @@ app.get('/api/admin/status', requireAuth, async (req, res) => {
         return {
           ...monitor,
           id: monitorId,
+          // Use database value for public status
+          public: publicMonitorIds.has(monitorId),
           uptime,
           avgResponseTime,
           currentStatus,
@@ -557,6 +567,9 @@ app.get('/api/admin/monitors/:id/details', requireAuth, async (req, res) => {
   }
   
   try {
+    // Get public status from database (source of truth)
+    const isPublic = await MonitorRepository.isPublic(monitorId);
+    
     // Get additional stats (same as public detail endpoint)
     const history = await StatusHistoryRepository.getHistory(monitorId, 90);
     const uptime = history.length > 0 
@@ -581,6 +594,7 @@ app.get('/api/admin/monitors/:id/details', requireAuth, async (req, res) => {
     
     res.json({
       ...monitor,
+      public: isPublic,
       uptime,
       avgResponseTime,
       currentStatus,
