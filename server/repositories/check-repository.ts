@@ -12,7 +12,7 @@ export class CheckRepository {
       const query = `
         INSERT INTO checks (
           monitor_id,
-          success,
+          status,
           response_time_ms,
           error_message,
           checked_at
@@ -22,7 +22,7 @@ export class CheckRepository {
       
       const values = [
         result.monitorId,
-        result.success,
+        result.success ? 'up' : 'down',
         result.responseTime,
         result.error || null,
         result.timestamp,
@@ -45,7 +45,7 @@ export class CheckRepository {
     const query = `
       SELECT 
         id,
-        success,
+        status = 'up' as success,
         response_time_ms,
         error_message,
         checked_at
@@ -68,7 +68,7 @@ export class CheckRepository {
   ): Promise<number> {
     const query = `
       SELECT 
-        COUNT(*) FILTER (WHERE success = true) as successful_checks,
+        COUNT(*) FILTER (WHERE status = 'up') as successful_checks,
         COUNT(*) as total_checks
       FROM checks
       WHERE 
@@ -96,7 +96,7 @@ export class CheckRepository {
       FROM checks
       WHERE 
         monitor_id = $1
-        AND success = true
+        AND status = 'up'
         AND checked_at > NOW() - INTERVAL '${periodDays} days'
     `;
     
@@ -111,7 +111,7 @@ export class CheckRepository {
     monitorId: number
   ): Promise<{ success: boolean; response_time_ms: number; checked_at: Date } | null> {
     const query = `
-      SELECT success, response_time_ms, checked_at
+      SELECT status = 'up' as success, response_time_ms, checked_at
       FROM checks
       WHERE monitor_id = $1
       ORDER BY checked_at DESC
@@ -140,7 +140,7 @@ export class CheckRepository {
       FROM checks
       WHERE 
         monitor_id = $1
-        AND success = true
+        AND status = 'up'
         AND checked_at > NOW() - INTERVAL '${periodDays} days'
       GROUP BY DATE_TRUNC('${truncate}', checked_at)
       ORDER BY timestamp ASC
@@ -163,7 +163,7 @@ export class CheckRepository {
     limit: number = 100
   ): Promise<{ timestamp: string; responseTime: number; success: boolean }[]> {
     const query = `
-      SELECT checked_at, response_time_ms, success
+      SELECT checked_at, response_time_ms, status = 'up' as success
       FROM checks
       WHERE monitor_id = $1
       ORDER BY checked_at DESC

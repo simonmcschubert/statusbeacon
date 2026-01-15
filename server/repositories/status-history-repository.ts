@@ -31,10 +31,10 @@ export class StatusHistoryRepository {
       SELECT 
         $1 as monitor_id,
         $2::date as date,
-        (COUNT(*) FILTER (WHERE success = true)::float / COUNT(*)::float * 100) as uptime_percentage,
-        AVG(response_time_ms) FILTER (WHERE success = true) as avg_response_time_ms,
+        (COUNT(*) FILTER (WHERE status = 'up')::float / NULLIF(COUNT(*)::float, 0) * 100) as uptime_percentage,
+        AVG(response_time_ms) FILTER (WHERE status = 'up') as avg_response_time_ms,
         COUNT(*) as total_checks,
-        COUNT(*) FILTER (WHERE success = true) as successful_checks
+        COUNT(*) FILTER (WHERE status = 'up') as successful_checks
       FROM checks
       WHERE 
         monitor_id = $1

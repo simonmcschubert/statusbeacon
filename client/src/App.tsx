@@ -7,7 +7,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoginPage } from './pages/admin/LoginPage'
 import { AdminLayout } from './pages/admin/AdminLayout'
-import { DashboardPage } from './pages/admin/DashboardPage'
+import { AdminStatusPage } from './pages/admin/AdminStatusPage'
 import { MonitorsPage } from './pages/admin/MonitorsPage'
 import { MonitorFormPage } from './pages/admin/MonitorFormPage'
 import { SettingsPage } from './pages/admin/SettingsPage'
@@ -106,7 +106,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardPage />} />
+          <Route index element={<AdminStatusPage />} />
           <Route path="monitors" element={<MonitorsPage />} />
           <Route path="monitors/new" element={<MonitorFormPage />} />
           <Route path="monitors/:id" element={<MonitorFormPage />} />

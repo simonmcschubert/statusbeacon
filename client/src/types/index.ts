@@ -17,6 +17,7 @@ export interface Monitor {
   type: 'http' | 'tcp' | 'websocket' | 'dns' | 'ping'
   interval: number
   public: boolean
+  group?: string
   currentStatus?: 'up' | 'down' | 'degraded' | 'unknown' | 'maintenance'
   uptime?: number
   avgResponseTime?: number | string

@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
-  { path: '/admin', label: 'Dashboard', exact: true },
+  { path: '/admin', label: 'Status', exact: true },
   { path: '/admin/monitors', label: 'Monitors' },
   { path: '/admin/settings', label: 'Settings' },
 ];

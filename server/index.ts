@@ -452,6 +452,62 @@ app.post('/api/admin/reload-monitors', requireAuth, async (req, res) => {
 // Admin API routes (protected)
 // ============================================
 
+// Get all monitors with enriched status data (admin view - includes private monitors)
+app.get('/api/admin/status', requireAuth, async (req, res) => {
+  if (!monitorsConfig) {
+    return res.status(500).json({ error: 'Monitors config not loaded' });
+  }
+  
+  try {
+    // Get ALL monitors (including private ones)
+    const allMonitors = monitorsConfig.monitors;
+    
+    // Enrich each monitor with stats (same as public endpoint)
+    const enrichedMonitors = await Promise.all(
+      allMonitors.map(async (monitor) => {
+        const monitorId = monitor.id || 0;
+        const uptime = await CheckRepository.calculateUptime(monitorId, 90);
+        const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
+        const latestCheck = await CheckRepository.getLatestCheck(monitorId);
+        const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+        const maintenanceStatus = await MaintenanceRepository.isInMaintenance(monitorId);
+        
+        // Determine current status - maintenance takes precedence
+        let currentStatus: string = 'unknown';
+        if (maintenanceStatus.inMaintenance) {
+          currentStatus = 'maintenance';
+        } else if (latestCheck?.success) {
+          currentStatus = 'up';
+        } else if (latestCheck) {
+          currentStatus = 'down';
+        }
+        
+        return {
+          ...monitor,
+          id: monitorId,
+          uptime,
+          avgResponseTime,
+          currentStatus,
+          uptimeHistory: history.map(h => ({
+            date: h.date,
+            uptime: h.uptimePercentage,
+          })),
+          maintenance: maintenanceStatus.inMaintenance ? {
+            active: true,
+            description: maintenanceStatus.description || maintenanceStatus.window?.description,
+            endsAt: maintenanceStatus.endsAt || maintenanceStatus.window?.endTime,
+          } : undefined,
+        };
+      })
+    );
+    
+    res.json({ monitors: enrichedMonitors });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch monitors';
+    res.status(500).json({ error: message });
+  }
+});
+
 // Get all monitors (admin view - includes all monitors)
 app.get('/api/admin/monitors', requireAuth, async (req, res) => {
   try {
