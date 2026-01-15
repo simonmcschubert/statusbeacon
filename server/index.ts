@@ -14,6 +14,7 @@ import { MonitorRepository } from './repositories/monitor-repository.js';
 import { MaintenanceRepository } from './repositories/maintenance-repository.js';
 import { scheduleDailyAggregation, scheduleHourlyAggregation, backfillHistoryOnStartup } from './jobs/daily-aggregation.js';
 import { AuthService } from './services/auth-service.js';
+import { UserRepository } from './repositories/user-repository.js';
 import { requireAuth } from './middleware/auth.js';
 import { bootstrapAdmin } from './bootstrap.js';
 
@@ -394,7 +395,7 @@ app.post('/api/reload-monitors', async (req, res) => {
     ConfigLoader.reloadConfigs();
     appConfig = ConfigLoader.loadAppConfig();
     monitorsConfig = ConfigLoader.loadMonitorsConfig();
-    await reloadMonitors();
+    await MonitorRepository.syncMonitors(monitorsConfig.monitors);
     res.json({ 
       message: 'Monitors reloaded successfully',
       count: monitorsConfig.monitors.length
@@ -443,7 +444,6 @@ app.post('/api/admin/reload-monitors', requireAuth, async (req, res) => {
   try {
     monitorsConfig = ConfigLoader.loadMonitorsConfig();
     await MonitorRepository.syncMonitors(monitorsConfig.monitors);
-    await reloadMonitors();
     res.json({ 
       message: 'Monitors reloaded successfully',
       count: monitorsConfig.monitors.length
