@@ -44,8 +44,8 @@ function AppContent() {
   }, [])
   
   // Get app title from config or use default
-  const appTitle = config?.app?.title || 'Status Page'
-  const footerText = config?.footer?.text || 'Powered by Status Page'
+  const appTitle = config?.app?.title || 'StatusBeacon'
+  const footerText = config?.footer?.text || 'Powered by StatusBeacon'
   const footerLinks = config?.footer?.links || []
 
   return (

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Development script for status-page
+# Development script for statusbeacon
 # Runs both backend and frontend in development mode
 # Usage:
 # ./scripts/dev.sh

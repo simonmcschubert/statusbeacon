@@ -1,6 +1,6 @@
 # Application configuration
 app:
-  title: "My Status Page"
+  title: "My StatusBeacon"
   description: "Service status for my infrastructure"
   logo_url: "/logo.svg"
   timezone: "UTC"
@@ -32,8 +32,8 @@ notifications:
 # Deployment configuration (used by scripts/deploy.sh)
 deploy:
   server: "user@your-server.com"  # SSH destination
-  path: "/var/www/status-page"    # Remote installation path
-  service: "status-page"          # systemd service name
+  path: "/var/www/statusbeacon"    # Remote installation path
+  service: "statusbeacon"          # systemd service name
 
 # Data retention settings (optional)
 # Controls automatic cleanup of old monitoring data
@@ -44,7 +44,7 @@ data:
 # Footer configuration (optional)
 # Customize the footer text and add navigation links
 footer:
-  text: "Powered by Status Page"
+  text: "Powered by StatusBeacon"
   # links:
   #   - label: "Documentation"
   #     url: "https://docs.example.com"

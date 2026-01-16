@@ -12,7 +12,7 @@ export function AdminLayout() {
     navigate('/admin/login');
   };
 
-  const footerText = config?.footer?.text || 'Powered by Status Page';
+  const footerText = config?.footer?.text || 'Powered by StatusBeacon';
   const footerLinks = config?.footer?.links || [];
 
   return (
@@ -23,7 +23,7 @@ export function AdminLayout() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-8">
               <span className="text-xl font-bold text-foreground">
-                Status Page Admin
+                StatusBeacon Admin
               </span>
             </div>
 

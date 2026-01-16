@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Deploy status-page to production server
+# Deploy statusbeacon to production server
 # Usage: ./scripts/deploy.sh [server]
 # Server defaults to deploy.server from config/config.yml
 
@@ -28,10 +28,10 @@ else
     exit 1
 fi
 
-APP_PATH="/var/www/status-page"
-SERVICE_NAME="status-page"
+APP_PATH="/var/www/statusbeacon"
+SERVICE_NAME="statusbeacon"
 
-echo "🚀 Deploying status-page to $SERVER..."
+echo "🚀 Deploying statusbeacon to $SERVER..."
 echo ""
 
 # Run basic checks locally
@@ -63,7 +63,7 @@ echo "📦 Deploying to server..."
 
 ssh -t "$SERVER" << 'REMOTESCRIPT'
     set -e
-    cd /var/www/status-page
+    cd /var/www/statusbeacon
     
     echo "  → Pulling latest code..."
     sudo -u www-data git fetch origin main
@@ -85,15 +85,15 @@ ssh -t "$SERVER" << 'REMOTESCRIPT'
     sudo -u www-data npm prune --production
     
     echo "  → Restarting service..."
-    sudo systemctl restart status-page
+    sudo systemctl restart statusbeacon
     
     echo "  → Checking service status..."
     sleep 2
-    if systemctl is-active --quiet status-page; then
+    if systemctl is-active --quiet statusbeacon; then
         echo "  ✓ Service is running"
     else
         echo "  ❌ Service failed to start"
-        sudo journalctl -u status-page -n 20 --no-pager
+        sudo journalctl -u statusbeacon -n 20 --no-pager
         exit 1
     fi
 REMOTESCRIPT

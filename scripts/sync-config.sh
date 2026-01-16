@@ -10,7 +10,7 @@ set -e
 
 # SSH options - use ControlMaster to reuse a single connection
 SSH_OPTS="-o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
-CONTROL_PATH="/tmp/ssh-status-page-%r@%h:%p"
+CONTROL_PATH="/tmp/ssh-statusbeacon-%r@%h:%p"
 SSH_MASTER_OPTS="$SSH_OPTS -o ControlMaster=auto -o ControlPath=$CONTROL_PATH -o ControlPersist=60"
 
 # Get the script's directory and app root
@@ -37,9 +37,9 @@ fi
 
 # Read app path from config or use default
 if command -v yq &> /dev/null && [ -f "config/config.yml" ]; then
-    APP_PATH=$(yq '.deploy.path // "/var/www/status-page"' config/config.yml)
+    APP_PATH=$(yq '.deploy.path // "/var/www/statusbeacon"' config/config.yml)
 else
-    APP_PATH="/var/www/status-page"
+    APP_PATH="/var/www/statusbeacon"
 fi
 
 # Cleanup function to close SSH master connection
@@ -104,7 +104,7 @@ ssh -o ControlPath="$CONTROL_PATH" "$SERVER" bash -s "$APP_PATH" << 'REMOTESCRIP
     sudo chown -R www-data:www-data "$APP_PATH/config/"
     
     # Reload service
-    sudo systemctl reload status-page 2>/dev/null || sudo systemctl restart status-page
+    sudo systemctl reload statusbeacon 2>/dev/null || sudo systemctl restart statusbeacon
 REMOTESCRIPT
 echo "  ✓ Service reloaded"
 

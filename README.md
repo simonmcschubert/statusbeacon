@@ -1,13 +1,13 @@
 ---
-name: status-page
+name: statusbeacon
 description: A lightweight, self-hosted status page for monitoring services
-github_repo: https://github.com/simonmcschubert/status-page
+github_repo: https://github.com/simonmcschubert/statusbeacon
 license: MIT
 ---
 
 <div align="center">
 
-# 📊 Status Page
+# 📊 StatusBeacon
 
 A lightweight, self-hosted status page for monitoring your services.
 
@@ -16,7 +16,7 @@ A lightweight, self-hosted status page for monitoring your services.
 [![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-[Live Demo](https://status.simonschubert.com) · [Documentation](#configuration) · [Report Bug](https://github.com/simonmcschubert/status-page/issues)
+[Live Demo](https://status.simonschubert.com) · [Documentation](#configuration) · [Report Bug](https://github.com/simonmcschubert/statusbeacon/issues)
 
 </div>
 
@@ -56,8 +56,8 @@ A lightweight, self-hosted status page for monitoring your services.
 
 ```bash
 # Clone the repository
-git clone https://github.com/simonmcschubert/status-page.git
-cd status-page
+git clone https://github.com/simonmcschubert/statusbeacon.git
+cd statusbeacon
 
 # Copy example configuration
 cp .env.example .env
@@ -88,8 +88,8 @@ Open [http://localhost:3000](http://localhost:3000) to view your status page.
 
 ```bash
 # Clone and install
-git clone https://github.com/simonmcschubert/status-page.git
-cd status-page
+git clone https://github.com/simonmcschubert/statusbeacon.git
+cd statusbeacon
 npm install
 cd client && npm install && cd ..
 
@@ -238,7 +238,7 @@ All admin endpoints require JWT authentication.
 ## 📁 Project Structure
 
 ```
-status-page/
+statusbeacon/
 ├── server/                 # Backend
 │   ├── config/            # Config loaders & schemas
 │   ├── db/                # Database & migrations
