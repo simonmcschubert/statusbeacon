@@ -42,10 +42,10 @@ export function AdminStatusPage() {
       }
       
       const statusData = await statusResponse.json();
-      const incidentsData = incidentsResponse.ok ? await incidentsResponse.json() : [];
+      const incidentsData = incidentsResponse.ok ? await incidentsResponse.json() : { incidents: [] };
       
       setMonitors(statusData.monitors || []);
-      setIncidents(incidentsData);
+      setIncidents(incidentsData.incidents || []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
