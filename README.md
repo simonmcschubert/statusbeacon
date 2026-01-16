@@ -72,9 +72,12 @@ Open [http://localhost:3000](http://localhost:3000) to view your status page.
 
 #### Prerequisites
 
-- Node.js >= 20.4
-- PostgreSQL 16
-- Redis 7
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| [Node.js](https://nodejs.org/) | 20+ | Runtime |
+| [PostgreSQL](https://www.postgresql.org/) | 16+ | Database |
+| [Redis](https://redis.io/) | 7+ | Job queue |
+| [yq](https://github.com/mikefarah/yq) | 4+ | Deploy script (optional) |
 
 #### Steps
 
