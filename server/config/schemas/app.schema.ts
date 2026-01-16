@@ -2,11 +2,7 @@ import { z } from 'zod';
 
 // UI Theme schema
 const UIThemeSchema = z.object({
-  default_mode: z.enum(['dark', 'light', 'auto']).default('dark'),
-  primary_color: z.string().default('#3b82f6'),
-  success_color: z.string().default('#10b981'),
-  warning_color: z.string().default('#f59e0b'),
-  danger_color: z.string().default('#ef4444'),
+  default_mode: z.enum(['dark', 'light', 'auto']).default('auto'),
 });
 
 // UI Charts schema
@@ -17,10 +13,11 @@ const UIChartsSchema = z.object({
 });
 
 // UI schema
+// Note: Colors are defined in client/src/styles/index.css, not in config
 const UISchema = z.object({
-  theme: UIThemeSchema,
-  charts: UIChartsSchema,
-});
+  theme: UIThemeSchema.optional(),
+  charts: UIChartsSchema.optional(),
+}).optional();
 
 // App schema
 const AppSchema = z.object({

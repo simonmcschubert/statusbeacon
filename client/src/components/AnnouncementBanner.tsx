@@ -57,21 +57,21 @@ export default function AnnouncementBanner({ announcements }: AnnouncementBanner
     switch (type) {
       case 'info':
         return {
-          bg: 'var(--color-info-bg, rgba(59, 130, 246, 0.1))',
-          border: 'var(--color-info, #3b82f6)',
-          text: 'var(--color-info, #3b82f6)'
+          bg: 'var(--color-info-bg)',
+          border: 'var(--color-info)',
+          text: 'var(--color-info)'
         }
       case 'warning':
         return {
-          bg: 'var(--color-warning-bg, rgba(245, 158, 11, 0.1))',
-          border: 'var(--color-warning, #f59e0b)',
-          text: 'var(--color-warning, #f59e0b)'
+          bg: 'var(--color-warning-bg)',
+          border: 'var(--color-warning)',
+          text: 'var(--color-warning)'
         }
       case 'maintenance':
         return {
-          bg: 'var(--color-maintenance-bg, rgba(139, 92, 246, 0.1))',
-          border: 'var(--color-maintenance, #8b5cf6)',
-          text: 'var(--color-maintenance, #8b5cf6)'
+          bg: 'var(--color-maintenance-bg)',
+          border: 'var(--color-maintenance)',
+          text: 'var(--color-maintenance)'
         }
     }
   }
