@@ -1,18 +1,20 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle, XCircle, AlertTriangle, Activity, Server, Lock } from 'lucide-react';
-import { Card, CardContent } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Skeleton } from '../../components/ui/skeleton';
 import { UptimeBar } from '../../components/UptimeBar';
 import { Badge } from '../../components/ui/badge';
+import IncidentTimeline from '../../components/IncidentTimeline';
 import { useSmartPolling } from '../../hooks/useSmartPolling';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
-import type { Monitor } from '../../types';
+import type { Monitor, Incident } from '../../types';
 
 export function AdminStatusPage() {
   const { accessToken } = useAuth();
   const [monitors, setMonitors] = useState<Monitor[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,27 +22,30 @@ export function AdminStatusPage() {
     if (!accessToken) return;
     
     try {
-      const response = await fetch('/api/admin/status', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      const [statusResponse, incidentsResponse] = await Promise.all([
+        fetch('/api/admin/status', {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        }),
+        fetch('/api/incidents'),
+      ]);
       
-      if (!response.ok) {
-        const text = await response.text();
+      if (!statusResponse.ok) {
+        const text = await statusResponse.text();
         let errorMessage = 'Failed to fetch status';
         try {
           const errorData = JSON.parse(text);
           errorMessage = errorData.error || errorMessage;
         } catch {
-          // If not JSON, use the status text
-          errorMessage = response.statusText || errorMessage;
+          errorMessage = statusResponse.statusText || errorMessage;
         }
         throw new Error(errorMessage);
       }
       
-      const data = await response.json();
-      setMonitors(data.monitors || []);
+      const statusData = await statusResponse.json();
+      const incidentsData = incidentsResponse.ok ? await incidentsResponse.json() : [];
+      
+      setMonitors(statusData.monitors || []);
+      setIncidents(incidentsData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -99,12 +104,6 @@ export function AdminStatusPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Status Overview</h1>
-        <p className="text-muted-foreground mt-1">All services including private monitors</p>
-      </div>
-
       {/* Status Banner */}
       <div className={cn(
         "p-6 rounded-lg",
@@ -206,6 +205,28 @@ export function AdminStatusPage() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* Status Updates / Incident History */}
+      <section>
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <Activity className="h-5 w-5 text-muted-foreground" />
+              Status Updates
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {incidents.length > 0 ? (
+              <IncidentTimeline incidents={incidents.slice(0, 5)} />
+            ) : (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <CheckCircle className="h-5 w-5 mr-2 text-success" />
+                <span>No incidents reported. All systems operating normally.</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

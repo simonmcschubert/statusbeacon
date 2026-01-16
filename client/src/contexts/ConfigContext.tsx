@@ -20,9 +20,20 @@ export interface AppConfig {
   noindex?: boolean
 }
 
+export interface FooterLink {
+  label: string
+  url: string
+}
+
+export interface FooterConfig {
+  text?: string
+  links?: FooterLink[]
+}
+
 export interface Config {
   app?: AppConfig
   ui?: UIConfig
+  footer?: FooterConfig
 }
 
 interface ConfigContextType {

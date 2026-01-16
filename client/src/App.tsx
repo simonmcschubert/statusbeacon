@@ -45,6 +45,8 @@ function AppContent() {
   
   // Get app title from config or use default
   const appTitle = config?.app?.title || 'Status Page'
+  const footerText = config?.footer?.text || 'Powered by Status Page'
+  const footerLinks = config?.footer?.links || []
 
   return (
     <Routes>
@@ -71,9 +73,26 @@ function AppContent() {
 
             <footer className="border-t border-border bg-card">
               <div className="max-w-4xl mx-auto px-6 py-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  Powered by Status Page
-                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <p className="text-sm text-muted-foreground">
+                    {footerText}
+                  </p>
+                  {footerLinks.length > 0 && (
+                    <nav className="flex items-center gap-4">
+                      {footerLinks.map((link, index) => (
+                        <a
+                          key={index}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
+                    </nav>
+                  )}
+                </div>
               </div>
             </footer>
           </div>
@@ -101,9 +120,26 @@ function AppContent() {
 
             <footer className="border-t border-border bg-card">
               <div className="max-w-4xl mx-auto px-6 py-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  Powered by Status Page
-                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <p className="text-sm text-muted-foreground">
+                    {footerText}
+                  </p>
+                  {footerLinks.length > 0 && (
+                    <nav className="flex items-center gap-4">
+                      {footerLinks.map((link, index) => (
+                        <a
+                          key={index}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
+                    </nav>
+                  )}
+                </div>
               </div>
             </footer>
           </div>

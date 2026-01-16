@@ -41,6 +41,18 @@ data:
   retention_days: 90             # Keep individual checks for 90 days (7-365)
   incidents_retention_days: 365  # Keep resolved incidents for 1 year (30-730)
 
+# Footer configuration (optional)
+# Customize the footer text and add navigation links
+footer:
+  text: "Powered by Status Page"
+  # links:
+  #   - label: "Documentation"
+  #     url: "https://docs.example.com"
+  #   - label: "Support"
+  #     url: "https://support.example.com"
+  #   - label: "Privacy Policy"
+  #     url: "https://example.com/privacy"
+
 # Status page announcements (optional)
 # Display banners at the top of the status page for scheduled maintenance,
 # important updates, or other communications

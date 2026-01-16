@@ -61,6 +61,18 @@ const AnnouncementSchema = z.object({
   ends_at: z.string().optional(),
 });
 
+// Footer link schema
+const FooterLinkSchema = z.object({
+  label: z.string(),
+  url: z.string(),
+});
+
+// Footer schema
+const FooterSchema = z.object({
+  text: z.string().optional(),
+  links: z.array(FooterLinkSchema).optional(),
+}).optional();
+
 // Main config schema
 export const AppConfigSchema = z.object({
   app: AppSchema,
@@ -69,6 +81,7 @@ export const AppConfigSchema = z.object({
   maintenance: z.array(MaintenanceWindowSchema).optional(),
   data: DataSchema,
   announcements: z.array(AnnouncementSchema).optional(),
+  footer: FooterSchema,
 });
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;
