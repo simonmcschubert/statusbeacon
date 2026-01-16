@@ -369,7 +369,11 @@ app.get('/api/incidents', async (req, res) => {
       ? await IncidentRepository.getActiveIncidents()
       : await IncidentRepository.getAllIncidents();
     
-    res.json({ incidents });
+    // Filter to only show incidents for public monitors
+    const publicMonitorIds = await MonitorRepository.getPublicMonitorIds();
+    const publicIncidents = incidents.filter(i => publicMonitorIds.has(i.monitorId));
+    
+    res.json({ incidents: publicIncidents });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch incidents';
     res.status(500).json({ error: message });
