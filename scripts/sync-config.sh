@@ -8,8 +8,10 @@ set -e
 # and reloads the service. Use this for quick config changes
 # without a full deploy.
 
-# SSH options to prevent timeouts and improve reliability
-SSH_OPTS="-o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes"
+# SSH options - use ControlMaster to reuse a single connection
+SSH_OPTS="-o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
+CONTROL_PATH="/tmp/ssh-status-page-%r@%h:%p"
+SSH_MASTER_OPTS="$SSH_OPTS -o ControlMaster=auto -o ControlPath=$CONTROL_PATH -o ControlPersist=60"
 
 # Get the script's directory and app root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,9 +42,15 @@ else
     APP_PATH="/var/www/status-page"
 fi
 
-# Test connection first
-echo "🔌 Testing connection to $SERVER..."
-if ! ssh $SSH_OPTS "$SERVER" "echo 'ok'" > /dev/null 2>&1; then
+# Cleanup function to close SSH master connection
+cleanup() {
+    ssh -O exit -o ControlPath="$CONTROL_PATH" "$SERVER" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Establish master connection
+echo "🔌 Connecting to $SERVER..."
+if ! ssh $SSH_MASTER_OPTS "$SERVER" "echo 'ok'" > /dev/null 2>&1; then
     echo "❌ Cannot connect to $SERVER"
     echo "   Check your network connection and SSH configuration"
     exit 1
@@ -50,8 +58,7 @@ fi
 echo "  ✓ Connected"
 echo ""
 
-echo "📁 Syncing config files to $SERVER..."
-echo ""
+echo "📁 Syncing config files..."
 
 # Check which config files exist locally
 CONFIG_FILES=""
@@ -77,18 +84,28 @@ fi
 
 echo ""
 
-# Upload config files using scp (simpler than rsync for small files)
+# Upload all config files in one scp call, then move them
 echo "📤 Uploading config files..."
-for file in $CONFIG_FILES; do
-    scp $SSH_OPTS "$file" "$SERVER:/tmp/$(basename $file)"
-    ssh $SSH_OPTS "$SERVER" "sudo mv /tmp/$(basename $file) $APP_PATH/$file"
-    echo "  ✓ Uploaded $file"
-done
+scp -o ControlPath="$CONTROL_PATH" $CONFIG_FILES "$SERVER:/tmp/"
+echo "  ✓ Files uploaded"
 
-# Fix ownership and reload service
+# Move files and reload service in one SSH call
 echo ""
-echo "🔄 Reloading service..."
-ssh $SSH_OPTS "$SERVER" "sudo chown -R www-data:www-data $APP_PATH/config/ && (sudo systemctl reload status-page || sudo systemctl restart status-page)"
+echo "🔄 Installing configs and reloading service..."
+ssh -o ControlPath="$CONTROL_PATH" "$SERVER" bash -s "$APP_PATH" << 'REMOTESCRIPT'
+    set -e
+    APP_PATH="$1"
+    
+    # Move config files
+    [ -f /tmp/config.yml ] && sudo mv /tmp/config.yml "$APP_PATH/config/config.yml"
+    [ -f /tmp/monitors.yml ] && sudo mv /tmp/monitors.yml "$APP_PATH/config/monitors.yml"
+    
+    # Fix ownership
+    sudo chown -R www-data:www-data "$APP_PATH/config/"
+    
+    # Reload service
+    sudo systemctl reload status-page 2>/dev/null || sudo systemctl restart status-page
+REMOTESCRIPT
 echo "  ✓ Service reloaded"
 
 echo ""
