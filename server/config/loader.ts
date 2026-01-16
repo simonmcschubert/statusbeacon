@@ -53,6 +53,8 @@ export class ConfigLoader {
           cooldown: dbSettings.notifications?.cooldown ?? yamlConfig.notifications.cooldown,
           template: dbSettings.notifications?.template || yamlConfig.notifications.template,
         },
+        // Pass through footer from YAML (not stored in DB)
+        footer: yamlConfig.footer,
       };
     } catch (error) {
       // If database is not available, fall back to YAML only
