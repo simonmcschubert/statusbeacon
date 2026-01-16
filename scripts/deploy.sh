@@ -66,7 +66,8 @@ ssh -t "$SERVER" << 'REMOTESCRIPT'
     cd /var/www/status-page
     
     echo "  → Pulling latest code..."
-    sudo -u www-data git pull origin main
+    sudo -u www-data git fetch origin main
+    sudo -u www-data git reset --hard origin/main
     
     echo "  → Installing backend dependencies..."
     sudo -u www-data npm install
