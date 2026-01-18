@@ -30,7 +30,8 @@ A lightweight, self-hosted status page for monitoring your services.
 - 🔑 **Admin dashboard** — JWT-authenticated admin UI for monitoring
 - 🕐 **Maintenance windows** — Schedule downtime, suppress alerts
 - ⚡ **Smart polling** — Visibility-aware refresh (10s active, 60s background)
-- 🐳 **Docker support** — Easy deployment with Docker Compose
+- � **Hot reload** — Update config without restarting the server
+- �🐳 **Docker support** — Easy deployment with Docker Compose
 
 ## 🖼️ Screenshots
 
@@ -103,26 +104,64 @@ cd client && npm run dev  # Frontend on :5173
 
 ## ⚙️ Configuration
 
-### Environment Variables (`.env`)
+StatusBeacon uses a **hybrid configuration** approach:
+- **config.yml** — Infrastructure settings, can include database/redis URLs
+- **.env** — Secrets only (JWT_SECRET, ADMIN_PASSWORD)
 
-```bash
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/statuspage
+### Configuration File (`config.yml`)
 
-# Redis
-REDIS_URL=redis://localhost:6379
+```yaml
+# Application settings
+app:
+  title: "My Status Page"
+  description: "Service status for my infrastructure"
+  timezone: "UTC"
 
-# Server
-PORT=3000
-NODE_ENV=production
+# Infrastructure (alternative to .env)
+server:
+  port: 3000
+  node_env: production
 
-# Admin credentials (auto-creates admin user on first run)
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=secure_password
-JWT_SECRET=your-secret-key  # Generate with: openssl rand -base64 32
+database:
+  url: postgresql://user:pass@localhost:5432/statuspage
+
+redis:
+  url: redis://localhost:6379
+
+admin:
+  email: admin@example.com  # Password comes from .env
+
+# Notifications
+notifications:
+  webhook_url: https://your-webhook.com/alerts
+  cooldown: 300
+  template: |
+    {"service": "[MONITOR_NAME]", "status": "[STATUS]"}
 ```
 
-### Monitor Configuration (`config/monitors.yml`)
+### Environment Variables (`.env`)
+
+Only secrets need to be in `.env`:
+
+```bash
+# Required secrets
+JWT_SECRET=your-secret-key  # Generate with: openssl rand -base64 32
+ADMIN_PASSWORD=secure_password  # Only needed on first run
+
+# Optional: Override config.yml settings
+# DATABASE_URL=postgresql://...
+# REDIS_URL=redis://...
+# PORT=3000
+
+# External config paths (for separate config deployment)
+# CONFIG_PATH=/var/data/statusbeacon/config.yml
+# MONITORS_PATH=/var/data/statusbeacon/monitors.yml
+
+# Disable hot reload if needed (default: enabled)
+# WATCH_CONFIG=false
+```
+
+### Monitor Configuration (`monitors.yml`)
 
 ```yaml
 monitors:
@@ -201,6 +240,34 @@ All admin endpoints require JWT authentication.
 | `GET /api/admin/monitors/:id/details` | Detailed monitor stats |
 | `POST /api/reload-monitors` | Reload configuration from YAML |
 
+## 🔄 Hot Reload
+
+StatusBeacon uses [chokidar](https://github.com/paulmillr/chokidar) to watch your config files and automatically reload without downtime:
+
+```bash
+# Edit your config
+vim /var/data/statusbeacon/monitors.yml
+
+# Changes are applied automatically!
+# Check the logs to confirm:
+# "🔄 Config file changed: /var/data/statusbeacon/monitors.yml"
+# "  ✓ Config validation passed"
+# "✅ Config reloaded successfully"
+```
+
+**Features:**
+- Validates config before applying (keeps old config if validation fails)
+- Debounces rapid file changes
+- Works with both local and external config paths
+- Cross-platform compatible
+
+This enables a clean separation between app code and configuration:
+- Deploy the app from a public repository
+- Manage config files separately (private repo or manual deployment)
+- Update monitors without restarting the service
+
+To disable hot reload, set `WATCH_CONFIG=false` in your environment.
+
 ## 🏗️ Tech Stack
 
 <table>
@@ -233,7 +300,7 @@ All admin endpoints require JWT authentication.
 ```
 statusbeacon/
 ├── server/                 # Backend
-│   ├── config/            # Config loaders & schemas
+│   ├── config/            # Config loaders, schemas & file watcher
 │   ├── db/                # Database & migrations
 │   ├── monitors/          # Protocol checkers
 │   ├── queue/             # BullMQ job processing
@@ -243,32 +310,60 @@ statusbeacon/
 │       ├── components/    # React components
 │       ├── pages/         # Route pages
 │       └── services/      # API client
-├── config/                 # YAML configuration
-│   ├── config.yml         # App settings
-│   └── monitors.yml       # Monitor definitions
-└── scripts/               # Deployment scripts
+├── config/                 # YAML configuration (examples only)
+│   ├── config.example.yml # App settings template
+│   └── monitors.example.yml # Monitor definitions template
+└── scripts/
+    ├── dev.sh             # Development with external config support
+    ├── deploy.example.sh  # Deployment template
+    └── update-config.example.sh # Config sync template
 ```
 
 ## 🚢 Deployment
 
-### Simple Deploy Script
+### Recommended: Private Config Folder
 
-```bash
-./scripts/deploy.sh user@your-server.com
+Keep your deploy script and config files in a private folder, separate from the app code:
+
+```
+~/private-configs/statusbeacon/
+├── deploy.sh          # Full deploy (copy from scripts/deploy.example.sh)
+├── update-config.sh   # Config-only updates (hot reload, no restart)
+├── config.yml         # Your app config
+├── monitors.yml       # Your monitors
+└── .env               # Secrets (JWT_SECRET, ADMIN_PASSWORD)
 ```
 
-The script will:
-1. Run local checks (TypeScript, frontend build)
-2. SSH to your server
-3. Pull latest code
-4. Install dependencies & build
-5. Restart the service
+**Deploy workflow:**
+```bash
+cd ~/private-configs/statusbeacon
+
+# Full deploy (app + config)
+./deploy.sh
+
+# Quick config update (no restart needed - hot reload!)
+./update-config.sh
+```
+
+### Development
+
+```bash
+# Using local config folder
+./scripts/dev.sh
+
+# Using external config folder
+./scripts/dev.sh ~/private-configs/statusbeacon
+```
+
+The dev script sets `CONFIG_PATH` and `MONITORS_PATH` automatically.
 
 ### Production Requirements
 
 - **Nginx** — Reverse proxy with SSL
 - **systemd** — Process management
 - **Let's Encrypt** — SSL certificates
+- **PostgreSQL 16+** — Database
+- **Redis 7+** — Job queue
 
 See [deployment documentation](docs/deployment.md) for detailed setup instructions.
 

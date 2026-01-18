@@ -7,10 +7,37 @@ import type { Monitor } from '../config/schemas/monitors.schema.js';
 
 const QUEUE_NAME = 'monitor-checks';
 
+// Get Redis connection options from config (YAML) or fall back to environment variables
+function getRedisOptions(): { host: string; port: number } {
+  try {
+    const config = ConfigLoader.getAppConfig();
+    if (config.redis?.url) {
+      const url = new URL(config.redis.url);
+      return {
+        host: url.hostname,
+        port: parseInt(url.port) || 6379,
+      };
+    }
+    if (config.redis?.host) {
+      return {
+        host: config.redis.host,
+        port: config.redis.port || 6379,
+      };
+    }
+  } catch {
+    // Config not loaded yet, use env vars
+  }
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+  };
+}
+
 // Redis connection for BullMQ
+const redisOptions = getRedisOptions();
 const connection = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  host: redisOptions.host,
+  port: redisOptions.port,
   maxRetriesPerRequest: null, // Required for BullMQ
 }) as any; // Type assertion for BullMQ compatibility
 

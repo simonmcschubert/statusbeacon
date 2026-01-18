@@ -1,5 +1,36 @@
 import { z } from 'zod';
 
+// Server configuration schema (for hybrid .env approach)
+const ServerSchema = z.object({
+  port: z.number().default(3000),
+  node_env: z.enum(['development', 'production', 'test']).default('development'),
+}).optional();
+
+// Database configuration schema
+const DatabaseSchema = z.object({
+  url: z.string(),
+}).optional();
+
+// Redis configuration schema
+const RedisSchema = z.object({
+  url: z.string().optional(),
+  host: z.string().optional(),
+  port: z.number().optional(),
+}).optional();
+
+// Admin configuration schema (password comes from .env)
+const AdminSchema = z.object({
+  email: z.string().email().optional(),
+}).optional();
+
+// Deploy configuration schema (used by deploy scripts, not by app)
+const DeploySchema = z.object({
+  server: z.string().optional(),
+  path: z.string().optional(),
+  config_path: z.string().optional(),
+  service: z.string().optional(),
+}).optional();
+
 // UI Theme schema
 const UIThemeSchema = z.object({
   default_mode: z.enum(['dark', 'light', 'auto']).default('auto'),
@@ -76,6 +107,11 @@ const FooterSchema = z.object({
 // Main config schema
 export const AppConfigSchema = z.object({
   app: AppSchema,
+  server: ServerSchema,
+  database: DatabaseSchema,
+  redis: RedisSchema,
+  admin: AdminSchema,
+  deploy: DeploySchema,
   ui: UISchema,
   notifications: NotificationsSchema,
   maintenance: z.array(MaintenanceWindowSchema).optional(),

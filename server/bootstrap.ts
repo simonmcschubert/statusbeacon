@@ -1,14 +1,29 @@
 import { UserRepository } from './repositories/user-repository.js';
+import { ConfigLoader } from './config/loader.js';
 
 /**
- * Auto-setup: Create admin user from environment variables on first boot
+ * Auto-setup: Create admin user from config/environment variables on first boot
+ * 
+ * Admin email can come from config.yml (admin.email) or ADMIN_EMAIL env var.
+ * Admin password must come from ADMIN_PASSWORD env var (never stored in config).
  * 
  * This runs once on application startup. It checks:
  * 1. If ADMIN_PASSWORD_RESET=true, reset existing admin password
- * 2. If no users exist and ADMIN_EMAIL + ADMIN_PASSWORD are set, create admin
+ * 2. If no users exist and admin email + password are set, create admin
  */
 export async function bootstrapAdmin(): Promise<void> {
-  const adminEmail = process.env.ADMIN_EMAIL;
+  // Get admin email from config or env var
+  let adminEmail = process.env.ADMIN_EMAIL;
+  try {
+    const config = ConfigLoader.getAppConfig();
+    if (config.admin?.email && !adminEmail) {
+      adminEmail = config.admin.email;
+    }
+  } catch {
+    // Config not loaded, use env var only
+  }
+  
+  // Password must always come from env var (never in config for security)
   const adminPassword = process.env.ADMIN_PASSWORD;
   const passwordReset = process.env.ADMIN_PASSWORD_RESET === 'true';
 

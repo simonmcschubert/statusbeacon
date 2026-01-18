@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ConfigLoader } from './config/loader.js';
+import { startConfigWatcher, stopConfigWatcher } from './config/watcher.js';
 import { MonitorRunner } from './monitors/runner.js';
 import { scheduleMonitors, shutdownQueue } from './queue/monitor-queue.js';
 import { IncidentRepository } from './repositories/incident-repository.js';
@@ -21,7 +22,6 @@ import { requireAuth } from './middleware/auth.js';
 import { bootstrapAdmin } from './bootstrap.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
@@ -51,12 +51,18 @@ app.use(express.static(clientDistPath, {
 // Load configurations
 let appConfig;
 let monitorsConfig;
+let PORT = 3000;
 
 try {
   appConfig = ConfigLoader.loadAppConfig();
   monitorsConfig = ConfigLoader.loadMonitorsConfig();
+  
+  // Get PORT from config or env var
+  PORT = appConfig.server?.port || parseInt(process.env.PORT || '3000');
+  
   console.log(`📋 Loaded ${monitorsConfig.monitors.length} monitors`);
 } catch (error) {
+  PORT = parseInt(process.env.PORT || '3000');
   console.error('⚠️  Failed to load config files. Using example configs.');
   console.error('   Copy config.example.yml to config.yml and monitors.example.yml to monitors.yml');
 }
@@ -679,17 +685,24 @@ app.listen(PORT, async () => {
       console.error('❌ Failed to schedule monitors:', error);
     }
   }
+  
+  // Start config file watcher for hot reload (unless disabled)
+  if (process.env.WATCH_CONFIG !== 'false') {
+    startConfigWatcher();
+  }
 });
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('\n🛑 SIGTERM received, shutting down gracefully...');
+  await stopConfigWatcher();
   await shutdownQueue();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('\n🛑 SIGINT received, shutting down gracefully...');
+  await stopConfigWatcher();
   await shutdownQueue();
   process.exit(0);
 });

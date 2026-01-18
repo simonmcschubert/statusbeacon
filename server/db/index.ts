@@ -1,8 +1,23 @@
 import pkg from 'pg';
+import { ConfigLoader } from '../config/loader.js';
+
 const { Pool } = pkg;
 
+// Get database URL from config (YAML) or fall back to environment variable
+function getDatabaseUrl(): string {
+  try {
+    const config = ConfigLoader.getAppConfig();
+    if (config.database?.url) {
+      return config.database.url;
+    }
+  } catch {
+    // Config not loaded yet, use env var
+  }
+  return process.env.DATABASE_URL || 'postgresql://localhost:5432/statuspage';
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getDatabaseUrl(),
 });
 
 export const query = async (text: string, params?: any[]) => {

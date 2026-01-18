@@ -3,12 +3,29 @@ import yaml from 'js-yaml';
 import { AppConfigSchema, type AppConfig } from './schemas/app.schema.js';
 import { MonitorsConfigSchema, type MonitorsConfig } from './schemas/monitors.schema.js';
 import { SettingsRepository, type AppSettings } from '../repositories/settings-repository.js';
+import { CONFIG_PATHS } from './paths.js';
 
 export class ConfigLoader {
   private static appConfig: AppConfig | null = null;
   private static monitorsConfig: MonitorsConfig | null = null;
 
-  static loadAppConfig(path: string = process.env.CONFIG_PATH || './config/config.yml'): AppConfig {
+  /**
+   * Validate config files without loading them into the app state.
+   * Returns true if valid, throws on error.
+   */
+  static validateConfigs(): { app: AppConfig; monitors: MonitorsConfig } {
+    const appContents = fs.readFileSync(CONFIG_PATHS.config, 'utf8');
+    const appData = yaml.load(appContents);
+    const appConfig = AppConfigSchema.parse(appData);
+
+    const monitorsContents = fs.readFileSync(CONFIG_PATHS.monitors, 'utf8');
+    const monitorsData = yaml.load(monitorsContents);
+    const monitorsConfig = MonitorsConfigSchema.parse(monitorsData);
+
+    return { app: appConfig, monitors: monitorsConfig };
+  }
+
+  static loadAppConfig(path: string = CONFIG_PATHS.config): AppConfig {
     try {
       const fileContents = fs.readFileSync(path, 'utf8');
       const data = yaml.load(fileContents);
@@ -63,7 +80,7 @@ export class ConfigLoader {
     }
   }
 
-  static loadMonitorsConfig(path: string = process.env.MONITORS_PATH || './config/monitors.yml'): MonitorsConfig {
+  static loadMonitorsConfig(path: string = CONFIG_PATHS.monitors): MonitorsConfig {
     try {
       const fileContents = fs.readFileSync(path, 'utf8');
       const data = yaml.load(fileContents);
