@@ -49,18 +49,22 @@ app.use(express.static(clientDistPath, {
 }));
 
 // Load configurations
-let appConfig;
-let monitorsConfig;
 let PORT = 3000;
 
+// Helpers to get current config (always fresh from ConfigLoader for hot reload support)
+const getMonitorsConfig = () => ConfigLoader.getMonitorsConfig();
+const getAppConfig = () => ConfigLoader.getAppConfig();
+
 try {
-  appConfig = ConfigLoader.loadAppConfig();
-  monitorsConfig = ConfigLoader.loadMonitorsConfig();
+  ConfigLoader.loadAppConfig(); // Initialize app config
+  ConfigLoader.loadMonitorsConfig(); // Initialize monitors config
+  
+  const appConfig = getAppConfig();
   
   // Get PORT from config or env var
   PORT = appConfig.server?.port || parseInt(process.env.PORT || '3000');
   
-  console.log(`📋 Loaded ${monitorsConfig.monitors.length} monitors`);
+  console.log(`📋 Loaded ${getMonitorsConfig().monitors.length} monitors`);
 } catch (_error) {
   PORT = parseInt(process.env.PORT || '3000');
   console.error('⚠️  Failed to load config files. Using example configs.');
@@ -224,7 +228,7 @@ app.get('/api/config', async (req, res) => {
 });
 
 app.get('/api/monitors', async (req, res) => {
-  if (!monitorsConfig) {
+  const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
   
@@ -283,7 +287,7 @@ app.get('/api/monitors', async (req, res) => {
 });
 
 app.get('/api/monitors/:id', async (req, res) => {
-  if (!monitorsConfig) {
+  const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
   
@@ -357,7 +361,7 @@ app.get('/api/monitors/:id', async (req, res) => {
 });
 
 app.get('/api/status', async (req, res) => {
-  if (!monitorsConfig) {
+  const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
 
@@ -401,6 +405,7 @@ app.get('/api/incidents', async (req, res) => {
 // Get active announcements for status page
 app.get('/api/announcements', async (req, res) => {
   try {
+    const appConfig = getAppConfig();
     const announcements = appConfig?.announcements ?? [];
     const now = new Date();
     
@@ -423,7 +428,7 @@ app.get('/api/announcements', async (req, res) => {
 
 // Test endpoint to run checks manually
 app.post('/api/test-check', async (req, res) => {
-  if (!monitorsConfig) {
+  const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
   
@@ -443,8 +448,7 @@ app.post('/api/test-check', async (req, res) => {
 app.post('/api/reload-monitors', async (req, res) => {
   try {
     ConfigLoader.reloadConfigs();
-    appConfig = ConfigLoader.loadAppConfig();
-    monitorsConfig = ConfigLoader.loadMonitorsConfig();
+    const monitorsConfig = getMonitorsConfig();
     await MonitorRepository.syncMonitors(monitorsConfig.monitors);
     res.json({ 
       message: 'Monitors reloaded successfully',
@@ -492,7 +496,8 @@ app.post('/api/admin/aggregate-status', requireAuth, async (req, res) => {
 // Reload monitors from config
 app.post('/api/admin/reload-monitors', requireAuth, async (req, res) => {
   try {
-    monitorsConfig = ConfigLoader.loadMonitorsConfig();
+    ConfigLoader.reloadConfigs();
+    const monitorsConfig = getMonitorsConfig();
     await MonitorRepository.syncMonitors(monitorsConfig.monitors);
     res.json({ 
       message: 'Monitors reloaded successfully',
@@ -510,7 +515,7 @@ app.post('/api/admin/reload-monitors', requireAuth, async (req, res) => {
 
 // Get all monitors with enriched status data (admin view - includes private monitors)
 app.get('/api/admin/status', requireAuth, async (req, res) => {
-  if (!monitorsConfig) {
+  const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
   
@@ -574,7 +579,7 @@ app.get('/api/admin/status', requireAuth, async (req, res) => {
 
 // Get detailed monitor stats (for admin detail page)
 app.get('/api/admin/monitors/:id/details', requireAuth, async (req, res) => {
-  if (!monitorsConfig) {
+  const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
     return res.status(500).json({ error: 'Monitors config not loaded' });
   }
   
@@ -664,6 +669,8 @@ app.listen(PORT, async () => {
   }
   
   // Sync monitors from config to database, then schedule checks
+  const monitorsConfig = getMonitorsConfig();
+  const appConfig = ConfigLoader.getAppConfig();
   if (monitorsConfig) {
     try {
       await MonitorRepository.syncMonitors(monitorsConfig.monitors);
