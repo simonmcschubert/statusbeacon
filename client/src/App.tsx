@@ -24,25 +24,25 @@ function AdminLoading() {
 
 function AppContent() {
   const { config } = useConfig()
-  
+
   useEffect(() => {
     // Always follow system preference
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    
+
     const updateTheme = (e: MediaQueryListEvent | MediaQueryList) => {
       const newTheme = e.matches ? 'dark' : 'light'
       document.documentElement.setAttribute('data-theme', newTheme)
     }
-    
+
     // Set initial theme
     updateTheme(mediaQuery)
-    
+
     // Listen for system theme changes
     mediaQuery.addEventListener('change', updateTheme)
-    
+
     return () => mediaQuery.removeEventListener('change', updateTheme)
   }, [])
-  
+
   // Get app title from config or use default
   const appTitle = config?.app?.title || 'StatusBeacon'
   const footerText = config?.footer?.text || 'Powered by StatusBeacon'
@@ -55,14 +55,16 @@ function AppContent() {
         path="/"
         element={
           <div className="min-h-screen bg-background flex flex-col">
-            <header className="bg-card/80 backdrop-blur-sm">
-              <div className="max-w-4xl mx-auto px-6 py-4">
-                <Link 
-                  to="/" 
-                  className="inline-flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+            <header className="border-b border-border bg-background">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-3 text-foreground hover:text-primary transition-colors"
                 >
-                  <Activity className="h-6 w-6" />
-                  <h1 className="text-xl font-semibold">{appTitle}</h1>
+                  <div className="p-1.5 bg-foreground text-background rounded-sm">
+                    <Activity className="h-5 w-5" />
+                  </div>
+                  <h1 className="text-xl font-bold font-serif tracking-tight">{appTitle}</h1>
                 </Link>
               </div>
             </header>
@@ -71,14 +73,14 @@ function AppContent() {
               <StatusPage />
             </main>
 
-            <footer className="bg-card">
-              <div className="max-w-4xl mx-auto px-6 py-4">
+            <footer className="border-t border-border mt-12 bg-background">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground font-serif">
                     {footerText}
                   </p>
                   {footerLinks.length > 0 && (
-                    <nav className="flex items-center gap-4">
+                    <nav className="flex items-center gap-6">
                       {footerLinks.map((link, index) => (
                         <a
                           key={index}
@@ -102,14 +104,16 @@ function AppContent() {
         path="/monitor/:id"
         element={
           <div className="min-h-screen bg-background flex flex-col">
-            <header className="bg-card/80 backdrop-blur-sm">
-              <div className="max-w-4xl mx-auto px-6 py-4">
-                <Link 
-                  to="/" 
-                  className="inline-flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+            <header className="border-b border-border bg-background">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-3 text-foreground hover:text-primary transition-colors"
                 >
-                  <Activity className="h-6 w-6" />
-                  <h1 className="text-xl font-semibold">{appTitle}</h1>
+                  <div className="p-1.5 bg-foreground text-background rounded-sm">
+                    <Activity className="h-5 w-5" />
+                  </div>
+                  <h1 className="text-xl font-bold font-serif tracking-tight">{appTitle}</h1>
                 </Link>
               </div>
             </header>
@@ -118,14 +122,14 @@ function AppContent() {
               <MonitorDetailPage />
             </main>
 
-            <footer className="bg-card">
-              <div className="max-w-4xl mx-auto px-6 py-4">
+            <footer className="border-t border-border mt-12 bg-background">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground font-serif">
                     {footerText}
                   </p>
                   {footerLinks.length > 0 && (
-                    <nav className="flex items-center gap-4">
+                    <nav className="flex items-center gap-6">
                       {footerLinks.map((link, index) => (
                         <a
                           key={index}

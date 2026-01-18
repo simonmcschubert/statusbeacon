@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { cn } from '../lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 
 interface UptimeBarProps {
   uptimeHistory?: { date: string; uptime: number }[];
@@ -10,7 +11,7 @@ interface UptimeBarProps {
 interface DayData {
   date: string;
   uptime: number;
-  status: 'up' | 'degraded' | 'down' | 'no-data';
+  level: 0 | 1 | 2 | 3 | 4; // 0=no data, 1=bad, 2=poor, 3=good, 4=perfect
 }
 
 export function UptimeBar({ uptimeHistory, days = 90, className }: UptimeBarProps) {
@@ -18,73 +19,71 @@ export function UptimeBar({ uptimeHistory, days = 90, className }: UptimeBarProp
     // Generate the last N days
     const result: DayData[] = [];
     const now = new Date();
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      
+
       // Find matching history data
       const historyEntry = uptimeHistory?.find(h => h.date === dateStr);
-      
+
+      let level: 0 | 1 | 2 | 3 | 4 = 0;
+      let uptimeValue = 100;
+
       if (historyEntry && historyEntry.uptime != null) {
-        // Parse uptime as number in case it's a string
-        const uptimeValue = typeof historyEntry.uptime === 'string' 
-          ? parseFloat(historyEntry.uptime) 
+        uptimeValue = typeof historyEntry.uptime === 'string'
+          ? parseFloat(historyEntry.uptime)
           : historyEntry.uptime;
-        
-        // Handle NaN from parsing
-        if (isNaN(uptimeValue)) {
-          result.push({
-            date: dateStr,
-            uptime: 100,
-            status: 'no-data'
-          });
-        } else {
-          let status: 'up' | 'degraded' | 'down' = 'up';
-          if (uptimeValue < 99) status = 'degraded';
-          if (uptimeValue < 90) status = 'down';
-          
-          result.push({
-            date: dateStr,
-            uptime: uptimeValue,
-            status
-          });
+
+        if (!isNaN(uptimeValue)) {
+          if (uptimeValue >= 99.9) level = 4;
+          else if (uptimeValue >= 99) level = 3;
+          else if (uptimeValue >= 95) level = 2;
+          else level = 1;
         }
-      } else {
-        // No data for this day - show as no-data
-        result.push({
-          date: dateStr,
-          uptime: 100,
-          status: 'no-data'
-        });
       }
+
+      result.push({
+        date: dateStr,
+        uptime: uptimeValue,
+        level
+      });
     }
-    
+
     return result;
   }, [uptimeHistory, days]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   return (
-    <div className={cn("flex items-center gap-[2px] h-8", className)}>
-      {barData.map((day) => (
-        <div
-          key={day.date}
-          className={cn(
-            "flex-1 rounded-sm transition-all hover:opacity-80 cursor-pointer min-w-[2px]",
-            day.status === 'up' && "bg-success",
-            day.status === 'degraded' && "bg-warning",
-            day.status === 'down' && "bg-error",
-            day.status === 'no-data' && "bg-[var(--color-no-data)] h-1/3"
-          )}
-          style={{ height: day.status === 'no-data' ? '33%' : '100%' }}
-          title={`${formatDate(day.date)}: ${day.status === 'no-data' ? 'No data' : `${day.uptime.toFixed(2)}%`}`}
-        />
-      ))}
-    </div>
+    <TooltipProvider delayDuration={0}>
+      <div className={cn("flex items-center gap-[3px] h-8 overflow-hidden", className)}>
+        {barData.map((day) => (
+          <Tooltip key={day.date}>
+            <TooltipTrigger asChild>
+              <div
+                className={cn(
+                  "flex-1 rounded-[1px] transition-all hover:scale-125 hover:z-10 cursor-help min-w-[3px] h-6 mb-1",
+                  day.level === 0 && "bg-muted/40", // No data
+                  day.level === 1 && "bg-red-500", // < 95%
+                  day.level === 2 && "bg-orange-400", // 95-99%
+                  day.level === 3 && "bg-emerald-300", // 99-99.9%
+                  day.level === 4 && "bg-emerald-500" // > 99.9%
+                )}
+                style={{ opacity: day.level === 0 ? 0.3 : 1 }}
+              />
+            </TooltipTrigger>
+            <TooltipContent className="text-xs bg-foreground text-background font-sans border-0 shadow-lg">
+              <div className="font-semibold">{formatDate(day.date)}</div>
+              <div>{day.level === 0 ? 'No Data' : `Uptime: ${day.uptime.toFixed(2)}%`}</div>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }

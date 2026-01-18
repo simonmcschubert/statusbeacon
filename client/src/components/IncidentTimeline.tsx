@@ -1,24 +1,9 @@
-import { AlertCircle, Clock, CheckCircle } from 'lucide-react'
-import { Card, CardContent } from './ui/card'
+import { Clock, CheckCircle } from 'lucide-react'
 import { Badge } from './ui/badge'
-import { cn } from '../lib/utils'
 import type { Incident } from '../types'
 
 interface IncidentTimelineProps {
   incidents: Incident[]
-}
-
-function getSeverityVariant(severity: string): 'default' | 'warning' | 'destructive' {
-  switch (severity) {
-    case 'critical':
-      return 'destructive'
-    case 'major':
-      return 'destructive'
-    case 'minor':
-      return 'warning'
-    default:
-      return 'default'
-  }
 }
 
 function getStatusVariant(status: string): 'success' | 'destructive' | 'warning' {
@@ -36,22 +21,10 @@ function getStatusVariant(status: string): 'success' | 'destructive' | 'warning'
   }
 }
 
-function getStatusIcon(status: string) {
-  switch (status) {
-    case 'resolved':
-      return <CheckCircle className="h-4 w-4" />
-    case 'investigating':
-    case 'identified':
-      return <AlertCircle className="h-4 w-4" />
-    default:
-      return <Clock className="h-4 w-4" />
-  }
-}
-
 export default function IncidentTimeline({ incidents }: IncidentTimelineProps) {
   if (incidents.length === 0) {
     return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
+      <div className="flex items-center justify-center py-8 text-muted-foreground font-serif italic">
         <CheckCircle className="h-5 w-5 mr-2 text-success" />
         <span>No incidents to display</span>
       </div>
@@ -59,60 +32,48 @@ export default function IncidentTimeline({ incidents }: IncidentTimelineProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-12">
       {incidents.map((incident) => (
-        <Card 
-          key={incident.id} 
-          className={cn(
-            "border-l-4",
-            incident.status === 'resolved' && "border-l-success",
-            incident.status === 'investigating' && "border-l-warning",
-            incident.status === 'identified' && "border-l-destructive",
-            !['resolved', 'investigating', 'identified'].includes(incident.status) && "border-l-muted"
-          )}
-        >
-          <CardContent className="pt-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <Badge variant={getSeverityVariant(incident.severity)}>
-                    {incident.severity}
-                  </Badge>
-                  <h3 className="font-medium text-foreground truncate">
-                    {incident.title}
-                  </h3>
-                </div>
-                
-                {incident.description && (
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {incident.description}
-                  </p>
-                )}
-                
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Started: {new Date(incident.startedAt).toLocaleString()}
-                  </span>
-                  {incident.resolvedAt && (
-                    <span className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-success" />
-                      Resolved: {new Date(incident.resolvedAt).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              <Badge 
-                variant={getStatusVariant(incident.status)}
-                className="flex items-center gap-1 shrink-0"
-              >
-                {getStatusIcon(incident.status)}
+        <article key={incident.id} className="relative pl-8 md:pl-0">
+          {/* Timeline Connector (Desktop) */}
+          <div className="hidden md:block absolute left-[-24px] top-2 bottom-[-48px] w-px bg-border last:bottom-0" />
+          <div className="hidden md:block absolute left-[-28px] top-2 h-2.5 w-2.5 rounded-full border border-border bg-background z-10" />
+
+          <header className="mb-3">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {new Date(incident.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+              <span className="text-muted-foreground/40">•</span>
+              <Badge variant={getStatusVariant(incident.status)} className="font-sans text-[10px] px-1.5 h-5 rounded-sm">
                 {incident.status}
               </Badge>
             </div>
-          </CardContent>
-        </Card>
+            <h3 className="text-2xl font-bold font-serif text-foreground leading-tight">
+              {incident.title}
+            </h3>
+          </header>
+
+          <div className="prose prose-neutral dark:prose-invert prose-p:text-muted-foreground prose-p:font-serif prose-p:leading-relaxed max-w-none">
+            <p>{incident.description}</p>
+          </div>
+
+          <footer className="mt-4 flex items-center gap-4 text-xs text-muted-foreground font-medium">
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{new Date(incident.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            {incident.resolvedAt && (
+              <>
+                <span className="text-muted-foreground/40">•</span>
+                <div className="flex items-center gap-1.5 text-success">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  <span>Resolved {new Date(incident.resolvedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </>
+            )}
+          </footer>
+        </article>
       ))}
     </div>
   )
