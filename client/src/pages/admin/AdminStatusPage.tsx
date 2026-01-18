@@ -26,7 +26,9 @@ export function AdminStatusPage() {
         fetch('/api/admin/status', {
           headers: { 'Authorization': `Bearer ${accessToken}` },
         }),
-        fetch('/api/incidents'),
+        fetch('/api/admin/incidents', {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        }),
       ]);
       
       if (!statusResponse.ok) {

@@ -577,6 +577,22 @@ app.get('/api/admin/status', requireAuth, async (req, res) => {
   }
 });
 
+// Get all incidents (admin view - includes incidents from private monitors)
+app.get('/api/admin/incidents', requireAuth, async (req, res) => {
+  try {
+    const activeOnly = req.query.active === 'true';
+    const incidents = activeOnly
+      ? await IncidentRepository.getActiveIncidents()
+      : await IncidentRepository.getAllIncidents();
+    
+    // Admin sees all incidents (no filtering by public status)
+    res.json({ incidents });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch incidents';
+    res.status(500).json({ error: message });
+  }
+});
+
 // Get detailed monitor stats (for admin detail page)
 app.get('/api/admin/monitors/:id/details', requireAuth, async (req, res) => {
   const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
