@@ -6,54 +6,8 @@ app:
   timezone: "UTC"
   noindex: false
 
-# Server configuration
-# Note: PORT env var takes precedence over this setting
-server:
-  port: 3001
-  node_env: production
-
-# Database configuration
-# Note: DATABASE_URL env var takes precedence over this setting
-database:
-  url: postgresql://statuspage:password@localhost:5432/statuspage
-
-# Redis configuration  
-# Note: REDIS_URL env var takes precedence over this setting
-redis:
-  url: redis://localhost:6379
-
-# Admin configuration
-# Note: The password should be set via ADMIN_PASSWORD env var for security
-admin:
-  email: admin@example.com
-
-# Footer configuration (optional)
-footer:
-  text: "Powered by StatusBeacon"
-  # links:
-  #   - label: "Documentation"
-  #     url: "https://docs.example.com"
-  #   - label: "Support"
-  #     url: "https://support.example.com"
-
-# Status page announcements (optional)
-# announcements:
-#   - id: "maintenance-2024-01"
-#     title: "Scheduled Maintenance"
-#     message: "Database upgrade scheduled for Saturday 2-4 AM UTC"
-#     type: "maintenance"  # info, warning, or maintenance
-#     active: true
-#     starts_at: "2024-01-20T02:00:00Z"
-#     ends_at: "2024-01-20T04:00:00Z"
-
-# Deployment configuration (used by scripts/deploy.sh and update-config.sh)
-deploy:
-  server: "user@your-server.com"
-  path: "/var/www/statusbeacon"
-  config_path: "/var/data/statusbeacon"
-  service: "statusbeacon"
-
 # UI/UX settings
+# Note: Colors are defined in client/src/styles/index.css
 ui:
   theme:
     default_mode: "auto"  # auto, light, or dark
@@ -75,8 +29,43 @@ notifications:
       "timestamp": "[TIMESTAMP]",
       "incident_id": "[INCIDENT_ID]"
     }
+# Deployment configuration (used by scripts/deploy.sh)
+deploy:
+  server: "user@your-server.com"  # SSH destination
+  path: "/var/www/statusbeacon"    # Remote installation path
+  service: "statusbeacon"          # systemd service name
 
 # Data retention settings (optional)
+# Controls automatic cleanup of old monitoring data
 data:
   retention_days: 90             # Keep individual checks for 90 days (7-365)
   incidents_retention_days: 365  # Keep resolved incidents for 1 year (30-730)
+
+# Footer configuration (optional)
+# Customize the footer text and add navigation links
+footer:
+  text: "Powered by StatusBeacon"
+  # links:
+  #   - label: "Documentation"
+  #     url: "https://docs.example.com"
+  #   - label: "Support"
+  #     url: "https://support.example.com"
+  #   - label: "Privacy Policy"
+  #     url: "https://example.com/privacy"
+
+# Status page announcements (optional)
+# Display banners at the top of the status page for scheduled maintenance,
+# important updates, or other communications
+# announcements:
+#   - id: "maintenance-2024-01"
+#     title: "Scheduled Maintenance"
+#     message: "Database upgrade scheduled for Saturday 2-4 AM UTC"
+#     type: "maintenance"  # info, warning, or maintenance
+#     active: true
+#     starts_at: "2024-01-20T02:00:00Z"  # Optional: show only after this time
+#     ends_at: "2024-01-20T04:00:00Z"    # Optional: hide after this time
+#   - id: "info-migration"
+#     title: "Service Migration Complete"
+#     message: "All services have been migrated to the new infrastructure"
+#     type: "info"
+#     active: true
