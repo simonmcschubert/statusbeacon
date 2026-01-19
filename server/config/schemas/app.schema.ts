@@ -61,7 +61,7 @@ const AppSchema = z.object({
 
 // Notifications schema
 const NotificationsSchema = z.object({
-  webhook_url: z.string().url(),
+  webhook_url: z.string().url().or(z.literal('')),
   cooldown: z.number().min(0).default(300),
   template: z.string(),
 });

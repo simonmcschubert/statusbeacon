@@ -56,10 +56,12 @@ async function getCertificateExpiration(url: string): Promise<{ daysUntilExpiry:
       // Timeout after 5 seconds
       socket.setTimeout(5000, () => {
         socket.destroy();
+        console.log(`[CertCheck] Timeout connecting to ${hostname}`);
         resolve(undefined);
       });
     });
-  } catch {
+  } catch (err) {
+    console.log(`[CertCheck] Error checking ${url}:`, err);
     return undefined;
   }
 }
@@ -86,6 +88,9 @@ export class HttpChecker {
           timeout,
           validateStatus: () => true, // Don't throw on any status code
           maxRedirects: 5,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
         }),
         getCertificateExpiration(url),
       ]);
