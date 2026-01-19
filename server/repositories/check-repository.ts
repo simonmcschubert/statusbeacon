@@ -328,4 +328,43 @@ export class CheckRepository {
 
     return map;
   }
+  /**
+   * Get uptime for multiple monitors for a specific date (e.g. today)
+   */
+  static async getDailyUptimeForMonitors(
+    monitorIds: number[],
+    date: Date = new Date()
+  ): Promise<Map<number, number>> {
+    if (monitorIds.length === 0) return new Map();
+
+    const dateStr = date.toISOString().split('T')[0];
+
+    const query = `
+      SELECT 
+        monitor_id,
+        COUNT(*) FILTER (WHERE status = 'up') as successful_checks,
+        COUNT(*) as total_checks
+      FROM checks
+      WHERE 
+        monitor_id = ANY($1)
+        AND DATE(checked_at) = $2::date
+      GROUP BY monitor_id
+    `;
+
+    const result = await pool.query(query, [monitorIds, dateStr]);
+
+    const map = new Map();
+    
+    for (const row of result.rows) {
+      const total = parseInt(row.total_checks);
+      const successful = parseInt(row.successful_checks);
+      // If checks exist, calculate uptime. Otherwise don't set in map (will be treated as no data)
+      if (total > 0) {
+        const uptime = (successful / total) * 100;
+        map.set(row.monitor_id, uptime);
+      }
+    }
+
+    return map;
+  }
 }

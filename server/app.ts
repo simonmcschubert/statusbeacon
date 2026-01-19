@@ -213,13 +213,17 @@ export const createApp = () => {
                 uptimeMap,
                 avgResponseTimeMap,
                 latestCheckMap,
-                maintenanceMap
+                maintenanceMap,
+                todaysUptimeMap
             ] = await Promise.all([
                 CheckRepository.getUptimeForMonitors(publicMonitorsListIds, 90),
                 CheckRepository.getAverageResponseTimeForMonitors(publicMonitorsListIds, 30),
                 CheckRepository.getLatestChecksForMonitors(publicMonitorsListIds),
-                MaintenanceRepository.getMaintenanceStatusForMonitors(publicMonitorsListIds)
+                MaintenanceRepository.getMaintenanceStatusForMonitors(publicMonitorsListIds),
+                CheckRepository.getDailyUptimeForMonitors(publicMonitorsListIds)
             ]);
+
+            const todayStr = new Date().toISOString().split('T')[0];
 
             // Map results back to monitors
             const enrichedMonitors = await Promise.all(publicMonitors.map(async (monitor) => {
@@ -243,16 +247,23 @@ export const createApp = () => {
                     currentStatus = 'down';
                 }
 
+                const todaysUptime = todaysUptimeMap.get(monitorId);
+                const historyList = history.map(h => ({
+                        date: h.date,
+                        uptime: h.uptimePercentage,
+                    }));
+
+                if (todaysUptime !== undefined && !historyList.some(h => h.date === todayStr)) {
+                    historyList.unshift({ date: todayStr, uptime: todaysUptime });
+                }
+
                 return {
                     ...monitor,
                     id: monitorId,
                     uptime,
                     avgResponseTime,
                     currentStatus,
-                    uptimeHistory: history.map(h => ({
-                        date: h.date,
-                        uptime: h.uptimePercentage,
-                    })),
+                    uptimeHistory: historyList,
                     maintenance: maintenanceStatus.inMaintenance ? {
                         active: true,
                         description: maintenanceStatus.description || maintenanceStatus.window?.description,
@@ -297,6 +308,18 @@ export const createApp = () => {
             const incidents = await IncidentRepository.getIncidentsForMonitor(monitorId, 20);
             const maintenanceStatus = await MaintenanceRepository.isInMaintenance(monitorId);
             const upcomingMaintenance = await MaintenanceRepository.getUpcomingMaintenance(monitorId, 5);
+            const todaysUptimeMap = await CheckRepository.getDailyUptimeForMonitors([monitorId]);
+             
+            const todayStr = new Date().toISOString().split('T')[0];
+            const historyList = history.map(h => ({
+                date: h.date,
+                uptime: h.uptimePercentage,
+            }));
+            
+            const todaysUptime = todaysUptimeMap.get(monitorId);
+            if (todaysUptime !== undefined && !historyList.some(h => h.date === todayStr)) {
+                historyList.unshift({ date: todayStr, uptime: todaysUptime });
+            }
 
             // Determine current status - maintenance takes precedence
             let currentStatus: string = 'unknown';
@@ -470,13 +493,17 @@ export const createApp = () => {
                 uptimeMap,
                 avgResponseTimeMap,
                 latestCheckMap,
-                maintenanceMap
+                maintenanceMap,
+                todaysUptimeMap
             ] = await Promise.all([
                 CheckRepository.getUptimeForMonitors(allMonitorIds, 90),
                 CheckRepository.getAverageResponseTimeForMonitors(allMonitorIds, 30),
                 CheckRepository.getLatestChecksForMonitors(allMonitorIds),
-                MaintenanceRepository.getMaintenanceStatusForMonitors(allMonitorIds)
+                MaintenanceRepository.getMaintenanceStatusForMonitors(allMonitorIds),
+                CheckRepository.getDailyUptimeForMonitors(allMonitorIds)
             ]);
+
+            const todayStr = new Date().toISOString().split('T')[0];
 
             // Enrich each monitor with stats
             const enrichedMonitors = await Promise.all(allMonitors.map(async (monitor) => {
@@ -500,6 +527,16 @@ export const createApp = () => {
                     currentStatus = 'down';
                 }
 
+                const todaysUptime = todaysUptimeMap.get(monitorId);
+                const historyList = history.map(h => ({
+                        date: h.date,
+                        uptime: h.uptimePercentage,
+                    }));
+
+                if (todaysUptime !== undefined && !historyList.some(h => h.date === todayStr)) {
+                    historyList.unshift({ date: todayStr, uptime: todaysUptime });
+                }
+
                 return {
                     ...monitor,
                     id: monitorId,
@@ -508,10 +545,7 @@ export const createApp = () => {
                     uptime,
                     avgResponseTime,
                     currentStatus,
-                    uptimeHistory: history.map(h => ({
-                        date: h.date,
-                        uptime: h.uptimePercentage,
-                    })),
+                    uptimeHistory: historyList,
                     maintenance: maintenanceStatus.inMaintenance ? {
                         active: true,
                         description: maintenanceStatus.description || maintenanceStatus.window?.description,
@@ -570,6 +604,18 @@ export const createApp = () => {
             const recentChecks = await CheckRepository.getRecentResponseTimes(monitorId, 100);
             const incidents = await IncidentRepository.getIncidentsForMonitor(monitorId, 20);
             const maintenanceStatus = await MaintenanceRepository.isInMaintenance(monitorId);
+            const todaysUptimeMap = await CheckRepository.getDailyUptimeForMonitors([monitorId]);
+             
+            const todayStr = new Date().toISOString().split('T')[0];
+            const historyList = history.map(h => ({
+                date: h.date,
+                uptime: h.uptimePercentage,
+            }));
+            
+            const todaysUptime = todaysUptimeMap.get(monitorId);
+            if (todaysUptime !== undefined && !historyList.some(h => h.date === todayStr)) {
+                historyList.unshift({ date: todayStr, uptime: todaysUptime });
+            }
 
             // Determine current status - maintenance takes precedence
             let currentStatus: string = 'unknown';
@@ -587,10 +633,7 @@ export const createApp = () => {
                 uptime,
                 avgResponseTime,
                 currentStatus,
-                uptimeHistory: history.map(h => ({
-                    date: h.date,
-                    uptime: h.uptimePercentage,
-                })),
+                uptimeHistory: historyList,
                 responseTimeHistory,
                 recentChecks,
                 incidents: incidents.map(i => ({

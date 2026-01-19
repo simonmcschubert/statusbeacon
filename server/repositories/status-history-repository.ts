@@ -113,9 +113,10 @@ export class StatusHistoryRepository {
     `;
     
     const result = await pool.query(monitorsQuery);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = yesterday.toISOString().split('T')[0];
+    
+    // Get yesterday's date string from DB to ensure timezone consistency
+    const dateRes = await pool.query("SELECT (CURRENT_DATE - 1)::text as date");
+    const dateStr = dateRes.rows[0].date;
     
     for (const row of result.rows) {
       await this.aggregateDailyStatus(row.monitor_id, dateStr);
@@ -130,14 +131,13 @@ export class StatusHistoryRepository {
     
     // Get all unique monitor IDs and dates that have checks but no history
     const query = `
-      SELECT DISTINCT c.monitor_id, DATE(c.checked_at) as check_date
+      SELECT DISTINCT c.monitor_id, DATE(c.checked_at)::text as check_date
       FROM checks c
       LEFT JOIN status_history sh 
         ON c.monitor_id = sh.monitor_id 
         AND DATE(c.checked_at) = sh.date
       WHERE 
         c.checked_at > CURRENT_DATE - INTERVAL '${days} days'
-        AND DATE(c.checked_at) < CURRENT_DATE  -- Don't aggregate today (incomplete)
         AND sh.id IS NULL
       ORDER BY check_date
     `;
@@ -145,7 +145,7 @@ export class StatusHistoryRepository {
     const result = await pool.query(query);
     
     for (const row of result.rows) {
-      const dateStr = row.check_date.toISOString().split('T')[0];
+      const dateStr = row.check_date;
       await this.aggregateDailyStatus(row.monitor_id, dateStr);
       aggregatedCount++;
     }
