@@ -582,9 +582,7 @@ export const createApp = () => {
             // Get additional stats (same as public detail endpoint)
             const historyList = await StatusHistoryRepository.getHistoryWithFallback(monitorId, 90);
 
-            const uptime = historyList.length > 0
-                ? historyList.reduce((sum, h) => sum + h.uptime, 0) / historyList.length
-                : await CheckRepository.calculateUptime(monitorId, 90);
+            const uptime = await CheckRepository.calculateUptime(monitorId, 90);
                 
             const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
             const latestCheck = await CheckRepository.getLatestCheck(monitorId);
