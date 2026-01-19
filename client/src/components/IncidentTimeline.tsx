@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { AlertCircle, Clock, CheckCircle } from 'lucide-react'
+import { Clock, CheckCircle } from 'lucide-react'
 import { Badge } from './ui/badge'
 import type { Incident } from '../types'
 

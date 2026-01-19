@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { CheckCircle, XCircle, AlertTriangle, Activity, Server, AlertCircle } from 'lucide-react'
+import { CheckCircle, XCircle, AlertTriangle, AlertCircle } from 'lucide-react'
 import { MonitorRow } from '../components/MonitorRow'
 import IncidentTimeline from '../components/IncidentTimeline'
 import AnnouncementBanner from '../components/AnnouncementBanner'
