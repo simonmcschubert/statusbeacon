@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
-import { fileURLToPath } from 'url';
+
 import { ConfigLoader } from './config/loader.js';
 import { MonitorRunner } from './monitors/runner.js';
 import { IncidentRepository } from './repositories/incident-repository.js';
@@ -14,7 +14,7 @@ import { MaintenanceRepository } from './repositories/maintenance-repository.js'
 import { AuthService } from './services/auth-service.js';
 import { UserRepository } from './repositories/user-repository.js';
 import { requireAuth } from './middleware/auth.js';
-import { bootstrapAdmin } from './bootstrap.js';
+
 import type { Announcement } from './config/schemas/app.schema.js';
 
 export const createApp = () => {
@@ -29,9 +29,7 @@ export const createApp = () => {
     app.use(express.json());
 
     // Serve static frontend files with efficient caching
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const clientDistPath = path.join(__dirname, '../../client/dist');
+    const clientDistPath = path.join(process.cwd(), 'client/dist');
 
     // Cache hashed assets (JS, CSS) for 1 year (immutable)
     app.use('/assets', express.static(path.join(clientDistPath, 'assets'), {
@@ -180,6 +178,8 @@ export const createApp = () => {
     // API routes
     // ============================================
     app.get('/api/config', async (req, res) => {
+        // Cache config for 1 minute as it rarely changes
+        res.setHeader('Cache-Control', 'public, max-age=60');
         try {
             // Get merged config (DB settings override YAML defaults)
             const mergedConfig = await ConfigLoader.getMergedAppConfig();
@@ -195,6 +195,9 @@ export const createApp = () => {
     });
 
     app.get('/api/monitors', async (req, res) => {
+        // Cache monitors list for 10 seconds to prevent DB spam on repeated page loads
+        res.setHeader('Cache-Control', 'public, max-age=10');
+        
         const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
             return res.status(500).json({ error: 'Monitors config not loaded' });
         }
@@ -266,6 +269,9 @@ export const createApp = () => {
     });
 
     app.get('/api/monitors/:id', async (req, res) => {
+        // Cache details for 10 seconds
+        res.setHeader('Cache-Control', 'public, max-age=10');
+
         const monitorsConfig = getMonitorsConfig(); if (!monitorsConfig) {
             return res.status(500).json({ error: 'Monitors config not loaded' });
         }
@@ -364,6 +370,9 @@ export const createApp = () => {
     });
 
     app.get('/api/incidents', async (req, res) => {
+        // Cache incidents for 10 seconds
+        res.setHeader('Cache-Control', 'public, max-age=10');
+
         try {
             const activeOnly = req.query.active === 'true';
             const incidents = activeOnly
@@ -382,6 +391,9 @@ export const createApp = () => {
     });
 
     app.get('/api/announcements', async (req, res) => {
+        // Cache announcements for 1 minute
+        res.setHeader('Cache-Control', 'public, max-age=60');
+
         try {
             const appConfig = getAppConfig();
             const announcements = appConfig?.announcements ?? [];
