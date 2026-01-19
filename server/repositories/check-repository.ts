@@ -367,4 +367,37 @@ export class CheckRepository {
 
     return map;
   }
+
+  /**
+   * Get daily uptime history directly from checks table
+   * Used as a fallback when status_history is missing
+   */
+  static async getDailyUptimeHistory(
+    monitorId: number,
+    days: number = 90
+  ): Promise<{ date: string; uptime: number }[]> {
+    const query = `
+      SELECT 
+        DATE(checked_at)::text as date,
+        COUNT(*) FILTER (WHERE status = 'up') as successful_checks,
+        COUNT(*) as total_checks
+      FROM checks
+      WHERE 
+        monitor_id = $1
+        AND checked_at > CURRENT_DATE - INTERVAL '${days} days'
+      GROUP BY DATE(checked_at)
+      ORDER BY date DESC
+    `;
+
+    const result = await pool.query(query, [monitorId]);
+
+    return result.rows.map(row => {
+      const total = parseInt(row.total_checks);
+      const successful = parseInt(row.successful_checks);
+      return {
+        date: row.date,
+        uptime: total === 0 ? 0 : (successful / total) * 100
+      };
+    });
+  }
 }

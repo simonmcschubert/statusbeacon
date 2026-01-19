@@ -235,7 +235,23 @@ export const createApp = () => {
                 const maintenanceStatus = maintenanceMap.get(monitorId) || { inMaintenance: false };
 
                 // Get history (still N+1 for now)
-                const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+                const cachedHistory = await StatusHistoryRepository.getHistory(monitorId, 90);
+                let historyList = cachedHistory.map(h => ({
+                        date: h.date,
+                        uptime: h.uptimePercentage,
+                    }));
+
+                // Fallback to raw checks if history is missing or stale (older than yesterday)
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                
+                if (historyList.length === 0 || (historyList.length > 0 && historyList[0].date < yesterdayStr)) {
+                     const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, 90);
+                     if (rawHistory.length > historyList.length) {
+                         historyList = rawHistory;
+                     }
+                }
 
                 // Determine current status - maintenance takes precedence
                 let currentStatus: string = 'unknown';
@@ -248,10 +264,6 @@ export const createApp = () => {
                 }
 
                 const todaysUptime = todaysUptimeMap.get(monitorId);
-                const historyList = history.map(h => ({
-                        date: h.date,
-                        uptime: h.uptimePercentage,
-                    }));
 
                 if (todaysUptime !== undefined && !historyList.some(h => h.date === todayStr)) {
                     historyList.unshift({ date: todayStr, uptime: todaysUptime });
@@ -301,7 +313,24 @@ export const createApp = () => {
             // Get additional stats
             const uptime = await CheckRepository.calculateUptime(monitorId, 90);
             const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
-            const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+            const cachedHistory = await StatusHistoryRepository.getHistory(monitorId, 90);
+            let historyList = cachedHistory.map(h => ({
+                date: h.date,
+                uptime: h.uptimePercentage,
+            }));
+
+            // Fallback to raw checks if history is missing or stale
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            if (historyList.length === 0 || (historyList.length > 0 && historyList[0].date < yesterdayStr)) {
+                    const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, 90);
+                    if (rawHistory.length > historyList.length) {
+                        historyList = rawHistory;
+                    }
+            }
+
             const latestCheck = await CheckRepository.getLatestCheck(monitorId);
             const responseTimeHistory = await CheckRepository.getResponseTimeHistory(monitorId, 30, 'day');
             const recentChecks = await CheckRepository.getRecentResponseTimes(monitorId, 100);
@@ -311,10 +340,6 @@ export const createApp = () => {
             const todaysUptimeMap = await CheckRepository.getDailyUptimeForMonitors([monitorId]);
              
             const todayStr = new Date().toISOString().split('T')[0];
-            const historyList = history.map(h => ({
-                date: h.date,
-                uptime: h.uptimePercentage,
-            }));
             
             const todaysUptime = todaysUptimeMap.get(monitorId);
             if (todaysUptime !== undefined && !historyList.some(h => h.date === todayStr)) {
@@ -336,10 +361,7 @@ export const createApp = () => {
                 uptime,
                 avgResponseTime,
                 currentStatus,
-                uptimeHistory: history.map(h => ({
-                    date: h.date,
-                    uptime: h.uptimePercentage,
-                })),
+                uptimeHistory: historyList,
                 responseTimeHistory,
                 recentChecks,
                 incidents: incidents.map(i => ({
@@ -515,7 +537,23 @@ export const createApp = () => {
                 const maintenanceStatus = maintenanceMap.get(monitorId) || { inMaintenance: false };
 
                 // Still N+1 for history
-                const history = await StatusHistoryRepository.getHistory(monitorId, 90);
+                const cachedHistory = await StatusHistoryRepository.getHistory(monitorId, 90);
+                let historyList = cachedHistory.map(h => ({
+                        date: h.date,
+                        uptime: h.uptimePercentage,
+                    }));
+
+                // Fallback to raw checks if history is missing or stale
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                
+                if (historyList.length === 0 || (historyList.length > 0 && historyList[0].date < yesterdayStr)) {
+                        const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, 90);
+                        if (rawHistory.length > historyList.length) {
+                            historyList = rawHistory;
+                        }
+                }
 
                 // Determine current status - maintenance takes precedence
                 let currentStatus: string = 'unknown';
@@ -528,10 +566,6 @@ export const createApp = () => {
                 }
 
                 const todaysUptime = todaysUptimeMap.get(monitorId);
-                const historyList = history.map(h => ({
-                        date: h.date,
-                        uptime: h.uptimePercentage,
-                    }));
 
                 if (todaysUptime !== undefined && !historyList.some(h => h.date === todayStr)) {
                     historyList.unshift({ date: todayStr, uptime: todaysUptime });
@@ -594,10 +628,28 @@ export const createApp = () => {
             const isPublic = await MonitorRepository.isPublic(monitorId);
 
             // Get additional stats (same as public detail endpoint)
-            const history = await StatusHistoryRepository.getHistory(monitorId, 90);
-            const uptime = history.length > 0
-                ? await StatusHistoryRepository.calculateAverageUptime(monitorId, 90)
+            const cachedHistory = await StatusHistoryRepository.getHistory(monitorId, 90);
+            let historyList = cachedHistory.map(h => ({
+                date: h.date,
+                uptime: h.uptimePercentage,
+            }));
+
+             // Fallback to raw checks if history is missing or stale
+             const yesterday = new Date();
+             yesterday.setDate(yesterday.getDate() - 1);
+             const yesterdayStr = yesterday.toISOString().split('T')[0];
+             
+             if (historyList.length === 0 || (historyList.length > 0 && historyList[0].date < yesterdayStr)) {
+                     const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, 90);
+                     if (rawHistory.length > historyList.length) {
+                         historyList = rawHistory;
+                     }
+             }
+
+            const uptime = historyList.length > 0
+                ? historyList.reduce((sum, h) => sum + h.uptime, 0) / historyList.length
                 : await CheckRepository.calculateUptime(monitorId, 90);
+                
             const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
             const latestCheck = await CheckRepository.getLatestCheck(monitorId);
             const responseTimeHistory = await CheckRepository.getResponseTimeHistory(monitorId, 30, 'day');
@@ -607,10 +659,6 @@ export const createApp = () => {
             const todaysUptimeMap = await CheckRepository.getDailyUptimeForMonitors([monitorId]);
              
             const todayStr = new Date().toISOString().split('T')[0];
-            const historyList = history.map(h => ({
-                date: h.date,
-                uptime: h.uptimePercentage,
-            }));
             
             const todaysUptime = todaysUptimeMap.get(monitorId);
             if (todaysUptime !== undefined && !historyList.some(h => h.date === todayStr)) {
