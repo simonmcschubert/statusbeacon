@@ -1,4 +1,5 @@
 import pool from '../db/index.js';
+import { CheckRepository } from './check-repository.js';
 
 export interface StatusHistoryEntry {
   id: number;
@@ -170,5 +171,40 @@ export class StatusHistoryRepository {
     for (const row of result.rows) {
       await this.aggregateDailyStatus(row.monitor_id, today);
     }
+  }
+
+  /**
+   * Get history with automatic fallback to raw checks for missing/stale data
+   * Merges cached status_history with raw checks data
+   */
+  static async getHistoryWithFallback(
+    monitorId: number,
+    days: number = 90
+  ): Promise<{ date: string; uptime: number }[]> {
+    // 1. Get cached history
+    const cachedHistory = await this.getHistory(monitorId, days);
+    
+    // 2. Get raw history from checks (for fallback/filling gaps)
+    // We fetch this regardless for now to ensure we have the latest data, 
+    // especially since status_history might be stale (e.g. cron failed)
+    const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, days);
+    
+    // 3. Merge them using a Map (raw data takes precedence as it's the source of truth)
+    const historyMap = new Map<string, number>();
+    
+    // Populate with cached data first
+    cachedHistory.forEach(h => {
+        historyMap.set(h.date, h.uptimePercentage);
+    });
+    
+    // Override/append with raw data (which is always fresh)
+    rawHistory.forEach(h => {
+        historyMap.set(h.date, h.uptime);
+    });
+    
+    // 4. Convert back to sorted array
+    return Array.from(historyMap.entries())
+        .map(([date, uptime]) => ({ date, uptime }))
+        .sort((a, b) => b.date.localeCompare(a.date));
   }
 }

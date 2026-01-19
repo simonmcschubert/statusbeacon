@@ -234,24 +234,8 @@ export const createApp = () => {
                 const latestCheck = latestCheckMap.get(monitorId);
                 const maintenanceStatus = maintenanceMap.get(monitorId) || { inMaintenance: false };
 
-                // Get history (still N+1 for now)
-                const cachedHistory = await StatusHistoryRepository.getHistory(monitorId, 90);
-                let historyList = cachedHistory.map(h => ({
-                        date: h.date,
-                        uptime: h.uptimePercentage,
-                    }));
-
-                // Fallback to raw checks if history is missing or stale (older than yesterday)
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = yesterday.toISOString().split('T')[0];
-                
-                if (historyList.length === 0 || (historyList.length > 0 && historyList[0].date < yesterdayStr)) {
-                     const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, 90);
-                     if (rawHistory.length > historyList.length) {
-                         historyList = rawHistory;
-                     }
-                }
+                // Get history with fallback
+                const historyList = await StatusHistoryRepository.getHistoryWithFallback(monitorId, 90);
 
                 // Determine current status - maintenance takes precedence
                 let currentStatus: string = 'unknown';
@@ -313,23 +297,7 @@ export const createApp = () => {
             // Get additional stats
             const uptime = await CheckRepository.calculateUptime(monitorId, 90);
             const avgResponseTime = await CheckRepository.getAverageResponseTime(monitorId, 30);
-            const cachedHistory = await StatusHistoryRepository.getHistory(monitorId, 90);
-            let historyList = cachedHistory.map(h => ({
-                date: h.date,
-                uptime: h.uptimePercentage,
-            }));
-
-            // Fallback to raw checks if history is missing or stale
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-            
-            if (historyList.length === 0 || (historyList.length > 0 && historyList[0].date < yesterdayStr)) {
-                    const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, 90);
-                    if (rawHistory.length > historyList.length) {
-                        historyList = rawHistory;
-                    }
-            }
+            const historyList = await StatusHistoryRepository.getHistoryWithFallback(monitorId, 90);
 
             const latestCheck = await CheckRepository.getLatestCheck(monitorId);
             const responseTimeHistory = await CheckRepository.getResponseTimeHistory(monitorId, 30, 'day');
@@ -537,23 +505,7 @@ export const createApp = () => {
                 const maintenanceStatus = maintenanceMap.get(monitorId) || { inMaintenance: false };
 
                 // Still N+1 for history
-                const cachedHistory = await StatusHistoryRepository.getHistory(monitorId, 90);
-                let historyList = cachedHistory.map(h => ({
-                        date: h.date,
-                        uptime: h.uptimePercentage,
-                    }));
-
-                // Fallback to raw checks if history is missing or stale
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = yesterday.toISOString().split('T')[0];
-                
-                if (historyList.length === 0 || (historyList.length > 0 && historyList[0].date < yesterdayStr)) {
-                        const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, 90);
-                        if (rawHistory.length > historyList.length) {
-                            historyList = rawHistory;
-                        }
-                }
+                const historyList = await StatusHistoryRepository.getHistoryWithFallback(monitorId, 90);
 
                 // Determine current status - maintenance takes precedence
                 let currentStatus: string = 'unknown';
@@ -628,23 +580,7 @@ export const createApp = () => {
             const isPublic = await MonitorRepository.isPublic(monitorId);
 
             // Get additional stats (same as public detail endpoint)
-            const cachedHistory = await StatusHistoryRepository.getHistory(monitorId, 90);
-            let historyList = cachedHistory.map(h => ({
-                date: h.date,
-                uptime: h.uptimePercentage,
-            }));
-
-             // Fallback to raw checks if history is missing or stale
-             const yesterday = new Date();
-             yesterday.setDate(yesterday.getDate() - 1);
-             const yesterdayStr = yesterday.toISOString().split('T')[0];
-             
-             if (historyList.length === 0 || (historyList.length > 0 && historyList[0].date < yesterdayStr)) {
-                     const rawHistory = await CheckRepository.getDailyUptimeHistory(monitorId, 90);
-                     if (rawHistory.length > historyList.length) {
-                         historyList = rawHistory;
-                     }
-             }
+            const historyList = await StatusHistoryRepository.getHistoryWithFallback(monitorId, 90);
 
             const uptime = historyList.length > 0
                 ? historyList.reduce((sum, h) => sum + h.uptime, 0) / historyList.length
