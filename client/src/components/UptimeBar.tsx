@@ -73,13 +73,13 @@ export function UptimeBar({ uptimeHistory, days = 90, className }: UptimeBarProp
               <div
                 className={cn(
                   "flex-1 rounded-[1px] transition-all hover:scale-125 hover:z-10 cursor-help min-w-[3px] h-6 mb-1",
-                  day.level === 0 && "bg-muted/40", // No data
+                  day.level === 0 && "bg-neutral-800", // No data
                   day.level === 1 && "bg-red-500", // < 95%
                   day.level === 2 && "bg-orange-400", // 95-99%
                   day.level === 3 && "bg-emerald-300", // 99-99.9%
                   day.level === 4 && "bg-emerald-500" // > 99.9%
                 )}
-                style={{ opacity: day.level === 0 ? 0.3 : 1 }}
+                style={{ opacity: 1 }}
               />
             </TooltipTrigger>
             <TooltipContent className="text-xs bg-foreground text-background font-sans border-0 shadow-lg">

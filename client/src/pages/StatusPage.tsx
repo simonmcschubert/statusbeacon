@@ -211,22 +211,22 @@ export default function StatusPage() {
         {/* System Metrics - Simplified to Text/Minimal Stats */}
         <motion.section variants={itemVariants} className="py-10 border-b border-border">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <motion.div whileHover={{ y: -2 }}>
+            <div>
               <div className="text-3xl font-bold font-serif mb-1">{overallUptime.toFixed(2)}%</div>
               <div className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Uptime</div>
-            </motion.div>
-            <motion.div whileHover={{ y: -2 }}>
+            </div>
+            <div>
               <div className="text-3xl font-bold font-serif mb-1">{monitors.length}</div>
               <div className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Services</div>
-            </motion.div>
-            <motion.div whileHover={{ y: -2 }}>
+            </div>
+            <div>
               <div className="text-3xl font-bold font-serif mb-1">{monitors.filter(m => m.currentStatus === 'up').length}</div>
               <div className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Operational</div>
-            </motion.div>
-            <motion.div whileHover={{ y: -2 }}>
+            </div>
+            <div>
               <div className="text-3xl font-bold font-serif mb-1">{activeIncidents.length}</div>
               <div className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Incidents</div>
-            </motion.div>
+            </div>
           </div>
         </motion.section>
 
