@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle, AlertTriangle, XCircle, ChevronRight, Wrench } from 'lucide-react';
 import type { Monitor } from '../types';
@@ -9,7 +10,7 @@ interface MonitorRowProps {
   monitor: Monitor;
 }
 
-export function MonitorRow({ monitor }: MonitorRowProps) {
+export const MonitorRow = memo(function MonitorRow({ monitor }: MonitorRowProps) {
   const uptimePercent = monitor.uptime ?? 100;
 
   const getStatusConfig = () => {
@@ -96,4 +97,4 @@ export function MonitorRow({ monitor }: MonitorRowProps) {
       </div>
     </Link>
   );
-}
+});

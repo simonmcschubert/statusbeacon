@@ -25,7 +25,7 @@ export interface RecurringMaintenanceConfig {
 function isInRecurringWindow(config: RecurringMaintenanceConfig): { inMaintenance: boolean; description?: string; endsAt?: Date } {
   const now = new Date();
   const timezone = config.timezone || 'UTC';
-  
+
   // Get current time in the specified timezone
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
@@ -33,17 +33,17 @@ function isInRecurringWindow(config: RecurringMaintenanceConfig): { inMaintenanc
     minute: '2-digit',
     hour12: false,
   });
-  
+
   const currentTimeStr = formatter.format(now);
   const [currentHour, currentMinute] = currentTimeStr.split(':').map(Number);
   const currentMinutes = currentHour * 60 + currentMinute;
-  
+
   // Parse start and end times
   const [startHour, startMinute] = config.start_time.split(':').map(Number);
   const [endHour, endMinute] = config.end_time.split(':').map(Number);
   const startMinutes = startHour * 60 + startMinute;
   const endMinutes = endHour * 60 + endMinute;
-  
+
   // Check if current time is within the window
   let inMaintenance = false;
   if (startMinutes <= endMinutes) {
@@ -53,7 +53,7 @@ function isInRecurringWindow(config: RecurringMaintenanceConfig): { inMaintenanc
     // Overnight case: start > end (e.g., 23:00 to 01:00)
     inMaintenance = currentMinutes >= startMinutes || currentMinutes < endMinutes;
   }
-  
+
   if (inMaintenance) {
     // Calculate when maintenance ends (today)
     const endsAt = new Date(now);
@@ -62,10 +62,10 @@ function isInRecurringWindow(config: RecurringMaintenanceConfig): { inMaintenanc
       // Overnight: ends tomorrow
       endsAt.setDate(endsAt.getDate() + 1);
     }
-    
+
     return { inMaintenance: true, description: config.description, endsAt };
   }
-  
+
   return { inMaintenance: false };
 }
 
@@ -143,8 +143,8 @@ export class MaintenanceRepository {
     for (const config of recurringConfigs) {
       const result = isInRecurringWindow(config);
       if (result.inMaintenance) {
-        return { 
-          inMaintenance: true, 
+        return {
+          inMaintenance: true,
           description: result.description,
           endsAt: result.endsAt,
         };
@@ -169,14 +169,90 @@ export class MaintenanceRepository {
       ORDER BY start_time DESC
       LIMIT 1
     `;
-    
+
     const result = await pool.query(query, [monitorId]);
-    
+
     if (result.rows.length > 0) {
       return { inMaintenance: true, window: result.rows[0] };
     }
-    
+
     return { inMaintenance: false };
+  }
+
+  /**
+   * Check active maintenance status for multiple monitors
+   */
+  static async getMaintenanceStatusForMonitors(
+    monitorIds: number[]
+  ): Promise<Map<number, { inMaintenance: boolean; window?: MaintenanceWindow; description?: string; endsAt?: Date }>> {
+    const result = new Map();
+
+    // 1. Check recurring maintenance from cache
+    for (const monitorId of monitorIds) {
+      const recurringConfigs = recurringMaintenanceCache.get(monitorId) || [];
+      let foundRecurring = false;
+
+      for (const config of recurringConfigs) {
+        const check = isInRecurringWindow(config);
+        if (check.inMaintenance) {
+          result.set(monitorId, {
+            inMaintenance: true,
+            description: check.description,
+            endsAt: check.endsAt
+          });
+          foundRecurring = true;
+          break;
+        }
+      }
+
+      if (!foundRecurring) {
+        result.set(monitorId, { inMaintenance: false });
+      }
+    }
+
+    if (monitorIds.length === 0) return result;
+
+    // 2. Check one-time windows from DB
+    // We only need to check monitors that aren't already in recurring maintenance
+    // But for simplicity/correctness (one-time might override or add info?), let's just query for all and merge
+    // Actually, usually maintenance is maintenance. If in recurring, we are good.
+    // So let's filter out those already found.
+    const idsToCheck = monitorIds.filter(id => !result.get(id)?.inMaintenance);
+
+    if (idsToCheck.length === 0) return result;
+
+    const query = `
+      SELECT DISTINCT ON (monitor_id)
+        id,
+        monitor_id as "monitorId",
+        start_time as "startTime",
+        end_time as "endTime",
+        description,
+        timezone,
+        created_at as "createdAt"
+      FROM maintenance_windows
+      WHERE 
+        (monitor_id = ANY($1) OR monitor_id IS NULL)
+        AND start_time <= NOW()
+        AND end_time >= NOW()
+      ORDER BY monitor_id, start_time DESC
+    `;
+
+    const dbResult = await pool.query(query, [idsToCheck]);
+
+    for (const row of dbResult.rows) {
+      // If global maintenance (monitor_id is null), it applies to everyone in idsToCheck
+      if (row.monitorId === null) {
+        for (const id of idsToCheck) {
+          // Overwrite or set
+          result.set(id, { inMaintenance: true, window: row });
+        }
+      } else {
+        result.set(row.monitorId, { inMaintenance: true, window: row });
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -199,7 +275,7 @@ export class MaintenanceRepository {
       ORDER BY start_time ASC
       LIMIT $2
     `;
-    
+
     const result = await pool.query(query, [monitorId, limit]);
     return result.rows;
   }
@@ -223,7 +299,7 @@ export class MaintenanceRepository {
         AND end_time >= NOW()
       ORDER BY start_time DESC
     `;
-    
+
     const result = await pool.query(query);
     return result.rows;
   }
@@ -236,7 +312,7 @@ export class MaintenanceRepository {
       DELETE FROM maintenance_windows
       WHERE end_time < NOW() - INTERVAL '${daysOld} days'
     `;
-    
+
     const result = await pool.query(query);
     return result.rowCount || 0;
   }
@@ -251,7 +327,7 @@ export class MaintenanceRepository {
     for (const window of maintenanceWindows) {
       const startTime = new Date(window.start);
       const endTime = new Date(window.end);
-      
+
       // Only sync future or current windows
       if (endTime >= new Date()) {
         await this.upsertMaintenanceWindow(

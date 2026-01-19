@@ -16,6 +16,14 @@ interface DayData {
 
 export function UptimeBar({ uptimeHistory, days = 90, className }: UptimeBarProps) {
   const barData = useMemo((): DayData[] => {
+    // Optimization: Create a lookup map for faster history matching
+    const historyMap = new Map<string, number>();
+    uptimeHistory?.forEach(h => {
+      if (h.date && h.uptime != null) {
+        historyMap.set(h.date, typeof h.uptime === 'string' ? parseFloat(h.uptime) : h.uptime);
+      }
+    });
+
     // Generate the last N days
     const result: DayData[] = [];
     const now = new Date();
@@ -25,16 +33,13 @@ export function UptimeBar({ uptimeHistory, days = 90, className }: UptimeBarProp
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
 
-      // Find matching history data
-      const historyEntry = uptimeHistory?.find(h => h.date === dateStr);
-
+      const uptimeValueFromMap = historyMap.get(dateStr);
+      
       let level: 0 | 1 | 2 | 3 | 4 = 0;
       let uptimeValue = 100;
 
-      if (historyEntry && historyEntry.uptime != null) {
-        uptimeValue = typeof historyEntry.uptime === 'string'
-          ? parseFloat(historyEntry.uptime)
-          : historyEntry.uptime;
+      if (uptimeValueFromMap !== undefined) {
+        uptimeValue = uptimeValueFromMap;
 
         if (!isNaN(uptimeValue)) {
           if (uptimeValue >= 99.9) level = 4;

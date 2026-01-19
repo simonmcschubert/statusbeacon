@@ -7,7 +7,7 @@ export class CheckRepository {
    */
   static async saveCheck(result: MonitorCheckResult): Promise<number> {
     const client = await pool.connect();
-    
+
     try {
       const query = `
         INSERT INTO checks (
@@ -19,7 +19,7 @@ export class CheckRepository {
         ) VALUES ($1, $2, $3, $4, $5)
         RETURNING id
       `;
-      
+
       const values = [
         result.monitorId,
         result.success ? 'up' : 'down',
@@ -27,7 +27,7 @@ export class CheckRepository {
         result.error || null,
         result.timestamp,
       ];
-      
+
       const res = await client.query(query, values);
       return res.rows[0].id;
     } finally {
@@ -54,7 +54,7 @@ export class CheckRepository {
       ORDER BY checked_at DESC
       LIMIT $2
     `;
-    
+
     const result = await pool.query(query, [monitorId, limit]);
     return result.rows;
   }
@@ -75,12 +75,12 @@ export class CheckRepository {
         monitor_id = $1
         AND checked_at > NOW() - INTERVAL '${periodDays} days'
     `;
-    
+
     const result = await pool.query(query, [monitorId]);
     const { successful_checks, total_checks } = result.rows[0];
-    
+
     if (total_checks === 0) return 100;
-    
+
     return (successful_checks / total_checks) * 100;
   }
 
@@ -99,7 +99,7 @@ export class CheckRepository {
         AND status = 'up'
         AND checked_at > NOW() - INTERVAL '${periodDays} days'
     `;
-    
+
     const result = await pool.query(query, [monitorId]);
     return result.rows[0].avg_response_time || 0;
   }
@@ -117,7 +117,7 @@ export class CheckRepository {
       ORDER BY checked_at DESC
       LIMIT 1
     `;
-    
+
     const result = await pool.query(query, [monitorId]);
     return result.rows[0] || null;
   }
@@ -145,7 +145,7 @@ export class CheckRepository {
       GROUP BY DATE_TRUNC('${truncate}', checked_at)
       ORDER BY timestamp ASC
     `;
-    
+
     const result = await pool.query(query, [monitorId]);
     return result.rows.map(row => ({
       timestamp: row.timestamp.toISOString(),
@@ -169,7 +169,7 @@ export class CheckRepository {
       ORDER BY checked_at DESC
       LIMIT $2
     `;
-    
+
     const result = await pool.query(query, [monitorId, limit]);
     return result.rows.map(row => ({
       timestamp: row.checked_at.toISOString(),
@@ -188,7 +188,7 @@ export class CheckRepository {
       DELETE FROM checks
       WHERE checked_at < NOW() - INTERVAL '1 day' * $1
     `;
-    
+
     const result = await pool.query(query, [retentionDays]);
     return result.rowCount ?? 0;
   }
@@ -216,9 +216,116 @@ export class CheckRepository {
       FROM ordered_checks
       WHERE status != prev_status AND prev_status IS NOT NULL
     `;
-    
+
     const result = await pool.query(query, [monitorId, windowMinutes]);
     return parseInt(result.rows[0]?.transitions ?? '0', 10);
   }
 
+  /**
+   * Get latest checks for multiple monitors
+   */
+  static async getLatestChecksForMonitors(
+    monitorIds: number[]
+  ): Promise<Map<number, { success: boolean; response_time_ms: number; checked_at: Date }>> {
+    if (monitorIds.length === 0) return new Map();
+
+    // Use DISTINCT ON to get the latest check for each monitor
+    const query = `
+      SELECT DISTINCT ON (monitor_id)
+        monitor_id,
+        status = 'up' as success,
+        response_time_ms,
+        checked_at
+      FROM checks
+      WHERE monitor_id = ANY($1)
+      ORDER BY monitor_id, checked_at DESC
+    `;
+
+    const result = await pool.query(query, [monitorIds]);
+
+    const map = new Map();
+    for (const row of result.rows) {
+      map.set(row.monitor_id, {
+        success: row.success,
+        response_time_ms: row.response_time_ms,
+        checked_at: row.checked_at
+      });
+    }
+
+    return map;
+  }
+
+  /**
+   * Calculate uptime for multiple monitors
+   */
+  static async getUptimeForMonitors(
+    monitorIds: number[],
+    periodDays: number = 30
+  ): Promise<Map<number, number>> {
+    if (monitorIds.length === 0) return new Map();
+
+    const query = `
+      SELECT 
+        monitor_id,
+        COUNT(*) FILTER (WHERE status = 'up') as successful_checks,
+        COUNT(*) as total_checks
+      FROM checks
+      WHERE 
+        monitor_id = ANY($1)
+        AND checked_at > NOW() - INTERVAL '1 day' * $2
+      GROUP BY monitor_id
+    `;
+
+    const result = await pool.query(query, [monitorIds, periodDays]);
+
+    const map = new Map();
+    // Initialize all with default 100% or 0%
+    for (const id of monitorIds) {
+      map.set(id, 100);
+    }
+
+    for (const row of result.rows) {
+      const total = parseInt(row.total_checks);
+      const successful = parseInt(row.successful_checks);
+      const uptime = total === 0 ? 100 : (successful / total) * 100;
+      map.set(row.monitor_id, uptime);
+    }
+
+    return map;
+  }
+
+  /**
+   * Get average response time for multiple monitors
+   */
+  static async getAverageResponseTimeForMonitors(
+    monitorIds: number[],
+    periodDays: number = 30
+  ): Promise<Map<number, number>> {
+    if (monitorIds.length === 0) return new Map();
+
+    const query = `
+      SELECT 
+        monitor_id,
+        AVG(response_time_ms) as avg_response_time
+      FROM checks
+      WHERE 
+        monitor_id = ANY($1)
+        AND status = 'up'
+        AND checked_at > NOW() - INTERVAL '1 day' * $2
+      GROUP BY monitor_id
+    `;
+
+    const result = await pool.query(query, [monitorIds, periodDays]);
+
+    const map = new Map();
+    for (const id of monitorIds) {
+      map.set(id, 0);
+    }
+
+    for (const row of result.rows) {
+      map.set(row.monitor_id, parseFloat(row.avg_response_time) || 0);
+    }
+
+    return map;
+  }
 }

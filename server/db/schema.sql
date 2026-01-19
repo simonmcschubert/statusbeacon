@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS status_history (
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_checks_monitor_id ON checks(monitor_id);
 CREATE INDEX IF NOT EXISTS idx_checks_checked_at ON checks(checked_at);
+-- Composite index for frequent queries filtering by monitor_id and time range
+CREATE INDEX IF NOT EXISTS idx_checks_monitor_checked_at ON checks(monitor_id, checked_at);
 CREATE INDEX IF NOT EXISTS idx_incidents_monitor_id ON incidents(monitor_id);
 CREATE INDEX IF NOT EXISTS idx_incidents_started_at ON incidents(started_at);
 CREATE INDEX IF NOT EXISTS idx_status_history_monitor_date ON status_history(monitor_id, date);

@@ -1,4 +1,5 @@
-import { Clock, CheckCircle } from 'lucide-react'
+import { memo } from 'react'
+import { AlertCircle, Clock, CheckCircle } from 'lucide-react'
 import { Badge } from './ui/badge'
 import type { Incident } from '../types'
 
@@ -21,7 +22,7 @@ function getStatusVariant(status: string): 'success' | 'destructive' | 'warning'
   }
 }
 
-export default function IncidentTimeline({ incidents }: IncidentTimelineProps) {
+export const IncidentTimeline = memo(function IncidentTimeline({ incidents }: IncidentTimelineProps) {
   if (incidents.length === 0) {
     return (
       <div className="flex items-center justify-center py-8 text-muted-foreground font-serif italic">
@@ -77,4 +78,6 @@ export default function IncidentTimeline({ incidents }: IncidentTimelineProps) {
       ))}
     </div>
   )
-}
+});
+
+export default IncidentTimeline;

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { CheckCircle, XCircle, AlertTriangle, AlertCircle } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { CheckCircle, XCircle, AlertTriangle, Activity, Server, AlertCircle } from 'lucide-react'
 import { MonitorRow } from '../components/MonitorRow'
 import IncidentTimeline from '../components/IncidentTimeline'
 import AnnouncementBanner from '../components/AnnouncementBanner'
@@ -42,7 +42,7 @@ export default function StatusPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [monitorsData, incidentsData, announcementsData] = await Promise.all([
         fetchMonitors(),
@@ -59,7 +59,7 @@ export default function StatusPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, []);
 
   // Smart polling: 10s when active, 60s when tab hidden
   useSmartPolling({

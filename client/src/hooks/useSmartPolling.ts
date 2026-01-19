@@ -30,17 +30,7 @@ interface UseSmartPollingOptions {
  * 
  * - Polls frequently (10s default) when user is actively viewing the page
  * - Slows down (60s default) when tab is hidden/backgrounded
- * - Zero additional server connections compared to fixed polling
- * - Reduces server load by 80%+ for typical browsing patterns
- * 
- * @example
- * ```tsx
- * useSmartPolling({
- *   onPoll: loadData,
- *   activeInterval: 10000,   // 10s when active
- *   inactiveInterval: 60000  // 60s when hidden
- * });
- * ```
+ * - Uses recursive setTimeout to prevent interval stacking on slow connections
  */
 export function useSmartPolling({
   onPoll,
@@ -48,46 +38,59 @@ export function useSmartPolling({
   inactiveInterval = 60000,
   pollOnMount = true,
 }: UseSmartPollingOptions) {
-  const timerRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPollingRef = useRef(false);
   const isVisibleRef = useRef(!document.hidden);
+  const onPollRef = useRef(onPoll);
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+  // Keep onPoll fresh
+  useEffect(() => {
+    onPollRef.current = onPoll;
+  }, [onPoll]);
+
+  const poll = useCallback(async () => {
+    if (isPollingRef.current) return;
+    
+    try {
+      isPollingRef.current = true;
+      await onPollRef.current();
+    } catch (error) {
+      console.error('Polling error:', error);
+    } finally {
+      isPollingRef.current = false;
+      
+      // Schedule next poll
+      const interval = document.hidden ? inactiveInterval : activeInterval;
+      timeoutRef.current = setTimeout(poll, interval);
     }
-  }, []);
-
-  const startTimer = useCallback((interval: number) => {
-    clearTimer();
-    timerRef.current = window.setInterval(onPoll, interval);
-  }, [onPoll, clearTimer]);
+  }, [activeInterval, inactiveInterval]);
 
   useEffect(() => {
-    // Poll immediately on mount if requested
     if (pollOnMount) {
-      onPoll();
+      poll();
+    } else {
+      // Just start the timer
+      const interval = document.hidden ? inactiveInterval : activeInterval;
+      timeoutRef.current = setTimeout(poll, interval);
     }
 
-    // Start with appropriate interval based on current visibility
-    const initialInterval = document.hidden ? inactiveInterval : activeInterval;
-    startTimer(initialInterval);
-
-    // Listen for visibility changes
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       
-      // Only restart timer if visibility state actually changed
       if (isVisible !== isVisibleRef.current) {
         isVisibleRef.current = isVisible;
         
-        // Switch to appropriate interval
-        const newInterval = isVisible ? activeInterval : inactiveInterval;
-        startTimer(newInterval);
+        // Reset timeout to switch interval immediately
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
         
-        // Poll immediately when tab becomes visible
+        // If becoming visible, poll immediately
         if (isVisible) {
-          onPoll();
+          poll();
+        } else {
+          // Just schedule with longer interval
+          timeoutRef.current = setTimeout(poll, inactiveInterval);
         }
       }
     };
@@ -95,8 +98,10 @@ export function useSmartPolling({
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      clearTimer();
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [onPoll, activeInterval, inactiveInterval, pollOnMount, startTimer, clearTimer]);
+  }, [poll, pollOnMount, inactiveInterval, activeInterval]);
 }
