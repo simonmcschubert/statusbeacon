@@ -7,29 +7,47 @@ import type { Monitor } from '../config/schemas/monitors.schema.js';
 
 const QUEUE_NAME = 'monitor-checks';
 
+type RedisOptions = {
+  host: string;
+  port: number;
+  password?: string;
+  tls?: Record<string, unknown>;
+};
+
+function parseRedisUrl(urlString: string): RedisOptions {
+  const url = new URL(urlString);
+  return {
+    host: url.hostname,
+    port: parseInt(url.port) || 6379,
+    password: url.password || undefined,
+    tls: url.protocol === 'rediss:' ? {} : undefined,
+  };
+}
+
 // Get Redis connection options from config (YAML) or fall back to environment variables
-function getRedisOptions(): { host: string; port: number } {
+function getRedisOptions(): RedisOptions {
   try {
     const config = ConfigLoader.getAppConfig();
     if (config.redis?.url) {
-      const url = new URL(config.redis.url);
-      return {
-        host: url.hostname,
-        port: parseInt(url.port) || 6379,
-      };
+      return parseRedisUrl(config.redis.url);
     }
     if (config.redis?.host) {
       return {
         host: config.redis.host,
         port: config.redis.port || 6379,
+        password: config.redis.password,
       };
     }
   } catch {
     // Config not loaded yet, use env vars
   }
+  if (process.env.REDIS_URL) {
+    return parseRedisUrl(process.env.REDIS_URL);
+  }
   return {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
   };
 }
 
@@ -38,6 +56,8 @@ const redisOptions = getRedisOptions();
 const connection = new Redis({
   host: redisOptions.host,
   port: redisOptions.port,
+  password: redisOptions.password,
+  tls: redisOptions.tls,
   maxRetriesPerRequest: null, // Required for BullMQ
 }) as any; // Type assertion for BullMQ compatibility
 

@@ -61,7 +61,9 @@ CREATE TABLE IF NOT EXISTS status_history (
   monitor_id INTEGER NOT NULL REFERENCES monitors(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   uptime_percentage DECIMAL(5,2),
+  avg_response_time_ms INTEGER,
   total_checks INTEGER,
+  successful_checks INTEGER,
   failed_checks INTEGER,
   UNIQUE(monitor_id, date)
 );
