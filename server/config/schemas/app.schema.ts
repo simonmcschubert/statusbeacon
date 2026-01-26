@@ -16,6 +16,7 @@ const RedisSchema = z.object({
   url: z.string().optional(),
   host: z.string().optional(),
   port: z.number().optional(),
+  password: z.string().optional(),
 }).optional();
 
 // Admin configuration schema (password comes from .env)
