@@ -1,6 +1,12 @@
 # Dependencies
 node_modules/
-npm-debug.log*
+!node_modules/
+node_modules/*
+!node_modules/.metadata_never_index
+frontend/node_modules/
+!frontend/node_modules/
+frontend/node_modules/*
+!frontend/node_modules/.metadata_never_index
 
 # Environment
 .env
